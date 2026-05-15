@@ -26,7 +26,7 @@ export async function POST(
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, is_active, password_hash')
+    .select('id, is_active, password_hash, views')
     .eq('slug', params.slug)
     .single();
 
@@ -46,7 +46,7 @@ export async function POST(
   await supabase
     .from('projects')
     .update({
-      views: (await getViews(supabase, project.id)) + 1,
+      views: (project.views ?? 0) + 1,
       last_viewed_at: new Date().toISOString(),
     })
     .eq('id', project.id);
@@ -63,13 +63,4 @@ export async function POST(
     maxAge: ACCESS_TTL,
   });
   return res;
-}
-
-async function getViews(supabase: any, id: string): Promise<number> {
-  const { data } = await supabase
-    .from('projects')
-    .select('views')
-    .eq('id', id)
-    .single();
-  return data?.views ?? 0;
 }
