@@ -46,7 +46,7 @@ export default async function TourPage({
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, slug, name, client_name, description, is_active, cover_url')
+    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -62,10 +62,16 @@ export default async function TourPage({
     return <UnavailableTour />;
   }
 
-  // ---- Verifica cookie de acceso ----
+  // ---- Acceso: hay 3 casos ----
+  //   1. Admin en preview → entra directo
+  //   2. Proyecto sin contraseña → entra directo (tour público)
+  //   3. Proyecto con contraseña → necesita cookie de acceso
   const cookieStore = cookies();
+  const isPublic = !project.password_hash;
   const hasAccess =
-    isPreview || cookieStore.get(`tour_access_${params.slug}`)?.value === '1';
+    isPreview ||
+    isPublic ||
+    cookieStore.get(`tour_access_${params.slug}`)?.value === '1';
 
   if (!hasAccess) {
     const coverUrl = project.cover_url

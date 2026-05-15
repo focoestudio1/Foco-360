@@ -93,6 +93,15 @@ export function HotspotPlacementViewer({
         hfov: 100,
         minHfov: 40,
         maxHfov: 120,
+        // Idem PannellumViewer: nunca exponer la URL firmada.
+        strings: {
+          loadingLabel: 'Cargando',
+          bylineLabel: '',
+          noPanoramaError: 'No se pudo cargar la escena.',
+          fileAccessError: 'No se pudo acceder a la escena.',
+          malformedURLError: 'No se pudo cargar la escena.',
+          unknownError: 'Error al cargar la escena.',
+        },
         hotSpots: hotspots.map((h) => ({
           id: h.id,
           pitch: h.pitch,

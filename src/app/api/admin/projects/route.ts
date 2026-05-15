@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   const name = String(body.name ?? '').trim();
+  // password puede venir vacío → tour de acceso libre.
   const password = String(body.password ?? '');
   const clientName = body.client_name ? String(body.client_name).trim() : null;
   const description = body.description ? String(body.description).trim() : null;
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) {
   if (!name) {
     return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
   }
-  if (!password || password.length < 4) {
+  // Si pasan password, mínimo 4 chars. Si no pasan nada, queda público.
+  if (password && password.length < 4) {
     return NextResponse.json(
       { error: 'La contraseña debe tener al menos 4 caracteres' },
       { status: 400 }
@@ -71,8 +73,9 @@ export async function POST(req: NextRequest) {
     slug = `${generateSlug(name)}-${randomSuffix(5)}`;
   }
 
-  // Hash de contraseña (bcrypt, 10 rounds — balance speed/seguridad).
-  const password_hash = await bcrypt.hash(password, 10);
+  // Hash de contraseña (bcrypt, 10 rounds). Si no hay password el
+  // proyecto queda con password_hash = NULL (tour público).
+  const password_hash = password ? await bcrypt.hash(password, 10) : null;
 
   const { data, error } = await supabase
     .from('projects')

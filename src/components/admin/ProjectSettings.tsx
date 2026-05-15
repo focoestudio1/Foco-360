@@ -68,6 +68,31 @@ export function ProjectSettings({
     setSaving(false);
   }
 
+  async function removePassword() {
+    if (
+      !confirm(
+        'El tour quedará público: cualquiera con el link podrá verlo sin contraseña. ¿Continuar?'
+      )
+    ) {
+      return;
+    }
+    setSaving(true);
+    const res = await fetch(`/api/admin/projects/${project.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ remove_password: true }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast('error', data.error || 'No se pudo quitar la contraseña');
+      setSaving(false);
+      return;
+    }
+    showToast('success', 'Tour ahora es público');
+    onUpdated();
+    setSaving(false);
+  }
+
   async function uploadCover(file: File) {
     if (!file.type.startsWith('image/')) {
       showToast('error', 'Selecciona una imagen');
@@ -191,14 +216,50 @@ export function ProjectSettings({
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
-        <Input
-          label="Nueva contraseña"
-          type="text"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-          placeholder="Dejar vacío para no cambiar"
-          hint="Mínimo 4 caracteres si la cambias."
-        />
+        {/* Estado actual de contraseña + cambio */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold uppercase tracking-wider text-text-muted">
+              Acceso
+            </span>
+            {project.has_password ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                🔒 Con contraseña
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-green-300">
+                🌐 Público
+              </span>
+            )}
+          </div>
+          <Input
+            label={
+              project.has_password ? 'Cambiar contraseña' : 'Agregar contraseña'
+            }
+            type="text"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            placeholder={
+              project.has_password
+                ? 'Dejar vacío para no cambiar'
+                : 'Mínimo 4 caracteres'
+            }
+            hint={
+              project.has_password
+                ? 'Mínimo 4 caracteres. Dejar vacío para no cambiar.'
+                : 'Si escribes una contraseña, el tour pasará a ser privado.'
+            }
+          />
+          {project.has_password && (
+            <button
+              type="button"
+              onClick={removePassword}
+              className="text-xs text-text-muted underline-offset-2 hover:text-red-300 hover:underline"
+            >
+              Quitar contraseña (volver público)
+            </button>
+          )}
+        </div>
 
         <label className="flex cursor-pointer items-center justify-between rounded-md border border-border bg-bg-elevated px-3 py-2">
           <span className="text-sm">Tour activo</span>

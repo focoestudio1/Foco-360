@@ -39,6 +39,8 @@ export type Project = {
   views: number;
   cover_url: string | null;
   cover_signed_url: string | null;
+  // true si el proyecto tiene contraseña configurada (no expone el hash).
+  has_password: boolean;
   last_viewed_at: string | null;
   created_at: string;
 };

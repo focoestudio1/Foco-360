@@ -19,9 +19,6 @@ export async function POST(
 ) {
   const body = await req.json().catch(() => ({}));
   const password = String(body.password ?? '');
-  if (!password) {
-    return NextResponse.json({ error: 'Contraseña requerida' }, { status: 400 });
-  }
 
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
@@ -37,9 +34,16 @@ export async function POST(
     return NextResponse.json({ error: 'Tour no disponible' }, { status: 403 });
   }
 
-  const ok = await bcrypt.compare(password, project.password_hash);
-  if (!ok) {
-    return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 401 });
+  // Si el proyecto NO tiene contraseña configurada (tour público), no
+  // exigimos password — solo cookie + increment de vistas.
+  if (project.password_hash) {
+    if (!password) {
+      return NextResponse.json({ error: 'Contraseña requerida' }, { status: 400 });
+    }
+    const ok = await bcrypt.compare(password, project.password_hash);
+    if (!ok) {
+      return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 401 });
+    }
   }
 
   // Incrementa contador de vistas y marca timestamp.

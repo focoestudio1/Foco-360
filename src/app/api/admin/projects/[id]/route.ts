@@ -60,11 +60,12 @@ export async function GET(
     }))
   );
 
-  // No exponer el hash.
-  const { password_hash: _h, ...safeProject } = project;
+  // No exponer el hash — solo si existe contraseña configurada.
+  const { password_hash, ...safeProject } = project;
+  const has_password = !!password_hash;
 
   return NextResponse.json({
-    project: { ...safeProject, cover_signed_url },
+    project: { ...safeProject, has_password, cover_signed_url },
     scenes: scenesSigned,
     hotspots,
   });
@@ -94,8 +95,14 @@ export async function PATCH(
   if (typeof body.is_active === 'boolean') update.is_active = body.is_active;
   if (typeof body.cover_url === 'string') update.cover_url = body.cover_url;
 
+  // Contraseña:
+  //   - body.password = "xxxxxxxx"  → setea/cambia contraseña
+  //   - body.password = ""          → ignora (no cambia nada)
+  //   - body.remove_password = true → elimina contraseña (tour público)
   if (typeof body.password === 'string' && body.password.length >= 4) {
     update.password_hash = await bcrypt.hash(body.password, 10);
+  } else if (body.remove_password === true) {
+    update.password_hash = null;
   }
 
   if (Object.keys(update).length === 0) {
