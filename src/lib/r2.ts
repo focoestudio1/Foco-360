@@ -124,3 +124,9 @@ export function buildCoverKey(slug: string, filename: string): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `projects/${slug}/cover-${Date.now()}-${safe}`;
 }
+
+// Key para el logo del proyecto.
+export function buildLogoKey(slug: string, filename: string): string {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `projects/${slug}/logo-${Date.now()}-${safe}`;
+}

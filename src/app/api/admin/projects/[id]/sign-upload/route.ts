@@ -13,7 +13,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getAdminUser } from '@/lib/auth';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
-import { buildCoverKey, buildSceneKey, getSignedPutUrl } from '@/lib/r2';
+import { buildCoverKey, buildLogoKey, buildSceneKey, getSignedPutUrl } from '@/lib/r2';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +37,7 @@ export async function POST(
   const contentType = String(body.contentType ?? '');
   const size = Number(body.size ?? 0);
 
-  if (kind !== 'cover' && kind !== 'scene') {
+  if (kind !== 'cover' && kind !== 'scene' && kind !== 'logo') {
     return NextResponse.json({ error: 'kind inválido' }, { status: 400 });
   }
   if (!filename || !contentType.startsWith('image/')) {
@@ -63,6 +63,8 @@ export async function POST(
   const key =
     kind === 'cover'
       ? buildCoverKey(project.slug, filename)
+      : kind === 'logo'
+      ? buildLogoKey(project.slug, filename)
       : buildSceneKey(project.slug, filename);
 
   const uploadUrl = await getSignedPutUrl(key, contentType);

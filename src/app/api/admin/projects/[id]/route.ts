@@ -48,9 +48,12 @@ export async function GET(
     hotspots = hs ?? [];
   }
 
-  // Firmamos URLs de portada y escenas para preview en el admin.
+  // Firmamos URLs de portada, logo y escenas para preview en el admin.
   const cover_signed_url = project.cover_url
     ? await getSignedReadUrl(project.cover_url).catch(() => null)
+    : null;
+  const logo_signed_url = project.logo_url
+    ? await getSignedReadUrl(project.logo_url).catch(() => null)
     : null;
 
   const scenesSigned = await Promise.all(
@@ -65,7 +68,12 @@ export async function GET(
   const has_password = !!password_hash;
 
   return NextResponse.json({
-    project: { ...safeProject, has_password, cover_signed_url },
+    project: {
+      ...safeProject,
+      has_password,
+      cover_signed_url,
+      logo_signed_url,
+    },
     scenes: scenesSigned,
     hotspots,
   });

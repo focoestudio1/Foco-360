@@ -2,8 +2,7 @@
 
 // ============================================================
 // Panel lateral con los detalles del proyecto:
-// nombre, cliente, descripción, contraseña, activo/inactivo,
-// portada y link público (con copy).
+// portada · logo · link público · datos · acceso · zona peligrosa.
 // ============================================================
 
 import { useRef, useState } from 'react';
@@ -12,7 +11,7 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { showToast } from '@/components/ui/Toast';
 import { CopyLinkButton } from './CopyLinkButton';
-import { uploadCover as uploadCoverDirect } from '@/lib/uploads';
+import { uploadCover as uploadCoverDirect, uploadLogo as uploadLogoDirect } from '@/lib/uploads';
 import type { Project } from './ProjectEditor';
 
 export function ProjectSettings({
@@ -31,13 +30,21 @@ export function ProjectSettings({
     password: '',
     is_active: project.is_active,
   });
+  // Modo de acceso: derivado del estado actual del proyecto.
+  // El usuario lo cambia con un toggle explícito.
+  const [wantPassword, setWantPassword] = useState(project.has_password);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadPct, setUploadPct] = useState(0);
-  const [uploadPhase, setUploadPhase] = useState<'compressing' | 'uploading'>(
-    'compressing'
-  );
-  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Estados de upload (portada y logo, separados).
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverPct, setCoverPct] = useState(0);
+  const [coverPhase, setCoverPhase] = useState<'compressing' | 'uploading'>('compressing');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPct, setLogoPct] = useState(0);
+  const [logoPhase, setLogoPhase] = useState<'compressing' | 'uploading'>('compressing');
+
+  const coverRef = useRef<HTMLInputElement>(null);
+  const logoRef = useRef<HTMLInputElement>(null);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
   const tourLink = `${siteUrl}/tour/${project.slug}`;
@@ -50,7 +57,14 @@ export function ProjectSettings({
       description: form.description,
       is_active: form.is_active,
     };
-    if (form.password) payload.password = form.password;
+    // Si el usuario quiere contraseña y escribió una, la mandamos.
+    if (wantPassword && form.password) {
+      payload.password = form.password;
+    }
+    // Si quería sin contraseña pero ANTES tenía, la quitamos.
+    if (!wantPassword && project.has_password) {
+      payload.remove_password = true;
+    }
     const res = await fetch(`/api/admin/projects/${project.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -68,61 +82,77 @@ export function ProjectSettings({
     setSaving(false);
   }
 
-  async function removePassword() {
-    if (
-      !confirm(
-        'El tour quedará público: cualquiera con el link podrá verlo sin contraseña. ¿Continuar?'
-      )
-    ) {
-      return;
-    }
-    setSaving(true);
-    const res = await fetch(`/api/admin/projects/${project.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ remove_password: true }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      showToast('error', data.error || 'No se pudo quitar la contraseña');
-      setSaving(false);
-      return;
-    }
-    showToast('success', 'Tour ahora es público');
-    onUpdated();
-    setSaving(false);
-  }
-
-  async function uploadCover(file: File) {
+  async function uploadCoverFile(file: File) {
     if (!file.type.startsWith('image/')) {
       showToast('error', 'Selecciona una imagen');
       return;
     }
-    setUploading(true);
-    setUploadPct(0);
-    setUploadPhase('compressing');
+    setCoverUploading(true);
+    setCoverPct(0);
+    setCoverPhase('compressing');
     try {
       await uploadCoverDirect(project.id, file, (p) => {
-        setUploadPct(p.pct);
-        setUploadPhase(p.phase);
+        setCoverPct(p.pct);
+        setCoverPhase(p.phase);
       });
       showToast('success', 'Portada actualizada');
       onUpdated();
     } catch (e) {
       showToast('error', (e as Error).message);
     } finally {
-      setUploading(false);
-      setUploadPct(0);
+      setCoverUploading(false);
+      setCoverPct(0);
     }
+  }
+
+  async function uploadLogoFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Selecciona una imagen');
+      return;
+    }
+    setLogoUploading(true);
+    setLogoPct(0);
+    setLogoPhase('compressing');
+    try {
+      await uploadLogoDirect(project.id, file, (p) => {
+        setLogoPct(p.pct);
+        setLogoPhase(p.phase);
+      });
+      showToast('success', 'Logo actualizado');
+      onUpdated();
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
+      setLogoUploading(false);
+      setLogoPct(0);
+    }
+  }
+
+  async function removeLogo() {
+    if (!confirm('¿Quitar el logo personalizado? Volverá al logo global de FOCO.')) {
+      return;
+    }
+    const res = await fetch(`/api/admin/projects/${project.id}/logo`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      showToast('error', 'Error al quitar logo');
+      return;
+    }
+    showToast('success', 'Logo quitado');
+    onUpdated();
   }
 
   return (
     <div className="space-y-6">
-      {/* Card portada */}
+      {/* ---------- Card PORTADA ---------- */}
       <div className="card space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           Portada
         </h2>
+        <p className="text-[11px] text-text-subtle">
+          Imagen que ve el cliente antes de entrar al tour.
+        </p>
         <div className="aspect-video w-full overflow-hidden rounded-md border border-border bg-bg-elevated">
           {project.cover_signed_url ? (
             <Image
@@ -140,41 +170,106 @@ export function ProjectSettings({
           )}
         </div>
         <input
-          ref={fileRef}
+          ref={coverRef}
           type="file"
           accept="image/*"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) uploadCover(f);
+            if (f) uploadCoverFile(f);
             e.target.value = '';
           }}
         />
         <Button
           variant="secondary"
-          onClick={() => fileRef.current?.click()}
-          loading={uploading}
+          onClick={() => coverRef.current?.click()}
+          loading={coverUploading}
           className="w-full"
         >
-          {uploading
-            ? `${uploadPhase === 'compressing' ? 'Optimizando' : 'Subiendo'}… ${uploadPct}%`
+          {coverUploading
+            ? `${coverPhase === 'compressing' ? 'Optimizando' : 'Subiendo'}… ${coverPct}%`
             : project.cover_url
             ? 'Cambiar portada'
             : 'Subir portada'}
         </Button>
-        {uploading && (
+        {coverUploading && (
           <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
             <div
               className={`h-full transition-all ${
-                uploadPhase === 'compressing' ? 'bg-blue-400' : 'bg-gold'
+                coverPhase === 'compressing' ? 'bg-blue-400' : 'bg-gold'
               }`}
-              style={{ width: `${uploadPct}%` }}
+              style={{ width: `${coverPct}%` }}
             />
           </div>
         )}
       </div>
 
-      {/* Card link público */}
+      {/* ---------- Card LOGO ---------- */}
+      <div className="card space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          Logo del proyecto
+        </h2>
+        <p className="text-[11px] text-text-subtle">
+          Reemplaza el logo global FOCO en este tour. PNG con fondo
+          transparente o SVG recomendado.
+        </p>
+        <div className="flex h-20 items-center justify-center rounded-md border border-border bg-white p-2">
+          {project.logo_signed_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={project.logo_signed_url}
+              alt="Logo"
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <span className="text-[11px] text-text-subtle">
+              Usando logo global
+            </span>
+          )}
+        </div>
+        <input
+          ref={logoRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadLogoFile(f);
+            e.target.value = '';
+          }}
+        />
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => logoRef.current?.click()}
+            loading={logoUploading}
+            className="flex-1"
+          >
+            {logoUploading
+              ? `${logoPhase === 'compressing' ? 'Optimizando' : 'Subiendo'}… ${logoPct}%`
+              : project.logo_url
+              ? 'Cambiar logo'
+              : 'Subir logo'}
+          </Button>
+          {project.logo_url && (
+            <Button variant="ghost" onClick={removeLogo}>
+              Quitar
+            </Button>
+          )}
+        </div>
+        {logoUploading && (
+          <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
+            <div
+              className={`h-full transition-all ${
+                logoPhase === 'compressing' ? 'bg-blue-400' : 'bg-gold'
+              }`}
+              style={{ width: `${logoPct}%` }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* ---------- Card LINK PÚBLICO ---------- */}
       <div className="card space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           Link público
@@ -196,7 +291,7 @@ export function ProjectSettings({
         </div>
       </div>
 
-      {/* Card detalles */}
+      {/* ---------- Card DETALLES ---------- */}
       <div className="card space-y-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           Detalles
@@ -216,50 +311,6 @@ export function ProjectSettings({
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
-        {/* Estado actual de contraseña + cambio */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold uppercase tracking-wider text-text-muted">
-              Acceso
-            </span>
-            {project.has_password ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
-                🔒 Con contraseña
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-green-300">
-                🌐 Público
-              </span>
-            )}
-          </div>
-          <Input
-            label={
-              project.has_password ? 'Cambiar contraseña' : 'Agregar contraseña'
-            }
-            type="text"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            placeholder={
-              project.has_password
-                ? 'Dejar vacío para no cambiar'
-                : 'Mínimo 4 caracteres'
-            }
-            hint={
-              project.has_password
-                ? 'Mínimo 4 caracteres. Dejar vacío para no cambiar.'
-                : 'Si escribes una contraseña, el tour pasará a ser privado.'
-            }
-          />
-          {project.has_password && (
-            <button
-              type="button"
-              onClick={removePassword}
-              className="text-xs text-text-muted underline-offset-2 hover:text-red-300 hover:underline"
-            >
-              Quitar contraseña (volver público)
-            </button>
-          )}
-        </div>
 
         <label className="flex cursor-pointer items-center justify-between rounded-md border border-border bg-bg-elevated px-3 py-2">
           <span className="text-sm">Tour activo</span>
@@ -270,15 +321,90 @@ export function ProjectSettings({
             onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
           />
         </label>
+      </div>
 
-        <div className="flex justify-between pt-2">
-          <Button variant="danger" onClick={onDelete}>
-            Eliminar
-          </Button>
-          <Button onClick={save} loading={saving}>
-            Guardar
-          </Button>
+      {/* ---------- Card ACCESO (toggle privado/público claro) ---------- */}
+      <div className="card space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          Acceso
+        </h2>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setWantPassword(false)}
+            className={`rounded-md border px-3 py-3 text-left transition-colors ${
+              !wantPassword
+                ? 'border-green-500/40 bg-green-500/10 text-green-200'
+                : 'border-border bg-bg-elevated text-text-muted hover:border-text-subtle'
+            }`}
+          >
+            <div className="text-xs uppercase tracking-wider">🌐 Público</div>
+            <div className="mt-1 text-[11px] opacity-80">
+              Cualquiera con el link entra.
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setWantPassword(true)}
+            className={`rounded-md border px-3 py-3 text-left transition-colors ${
+              wantPassword
+                ? 'border-gold/40 bg-gold/10 text-gold'
+                : 'border-border bg-bg-elevated text-text-muted hover:border-text-subtle'
+            }`}
+          >
+            <div className="text-xs uppercase tracking-wider">🔒 Privado</div>
+            <div className="mt-1 text-[11px] opacity-80">
+              Requiere contraseña.
+            </div>
+          </button>
         </div>
+
+        {wantPassword && (
+          <Input
+            label={project.has_password ? 'Cambiar contraseña' : 'Nueva contraseña'}
+            type="text"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            placeholder={
+              project.has_password
+                ? 'Dejar vacío para no cambiar'
+                : 'Mínimo 4 caracteres'
+            }
+            hint={
+              project.has_password
+                ? 'Si dejas vacío, la contraseña actual se mantiene.'
+                : 'Esta contraseña la usará el cliente al abrir el link.'
+            }
+          />
+        )}
+
+        {!wantPassword && project.has_password && (
+          <p className="rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-[11px] text-yellow-200">
+            ⚠ Al guardar, este tour quedará público (sin contraseña).
+          </p>
+        )}
+      </div>
+
+      {/* ---------- Botón GUARDAR (sticky-ish al final) ---------- */}
+      <div className="flex justify-end">
+        <Button onClick={save} loading={saving} className="w-full">
+          Guardar cambios
+        </Button>
+      </div>
+
+      {/* ---------- ZONA PELIGRO (eliminar) ---------- */}
+      <div className="card border-red-500/30 bg-red-500/5 space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-red-300">
+          Zona peligrosa
+        </h2>
+        <p className="text-[11px] text-text-subtle">
+          Eliminar este proyecto borra todas sus escenas, hotspots y
+          archivos del bucket. <strong className="text-red-300">No se puede deshacer.</strong>
+        </p>
+        <Button variant="danger" onClick={onDelete} className="w-full">
+          🗑 Eliminar proyecto
+        </Button>
       </div>
     </div>
   );

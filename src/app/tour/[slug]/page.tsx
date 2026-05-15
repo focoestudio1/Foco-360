@@ -46,7 +46,7 @@ export default async function TourPage({
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash')
+    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -116,8 +116,14 @@ export default async function TourPage({
   const scenesSigned = scenes.map((s) => ({
     id: s.id,
     title: s.title,
+    description: s.description,
     url: `/api/tour/${params.slug}/image?key=${encodeURIComponent(s.image_url)}`,
   }));
+
+  // Logo del proyecto (si tiene uno propio).
+  const logoUrl = project.logo_url
+    ? await getSignedReadUrl(project.logo_url).catch(() => null)
+    : null;
 
   return (
     <TourViewer
@@ -126,6 +132,7 @@ export default async function TourPage({
       scenes={scenesSigned}
       isPreview={!!isPreview}
       isInactive={!project.is_active}
+      logoUrl={logoUrl}
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,

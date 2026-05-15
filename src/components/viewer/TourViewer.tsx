@@ -20,7 +20,12 @@ const Pannellum = dynamic(() => import('./PannellumViewer').then((m) => m.Pannel
   ),
 });
 
-export type ViewerScene = { id: string; title: string; url: string };
+export type ViewerScene = {
+  id: string;
+  title: string;
+  url: string;
+  description?: string | null;
+};
 export type ViewerHotspot = {
   id: string;
   scene_id: string;
@@ -37,6 +42,7 @@ export function TourViewer({
   hotspots,
   isPreview = false,
   isInactive = false,
+  logoUrl,
 }: {
   slug: string;
   projectName: string;
@@ -46,6 +52,8 @@ export function TourViewer({
   isPreview?: boolean;
   // El proyecto está desactivado (solo visible en preview).
   isInactive?: boolean;
+  // Si el proyecto tiene logo propio, lo usamos en vez del global.
+  logoUrl?: string | null;
 }) {
   const [activeId, setActiveId] = useState<string>(scenes[0]?.id);
   const [fullscreen, setFullscreen] = useState(false);
@@ -99,17 +107,39 @@ export function TourViewer({
           />
         )}
 
-        {/* Overlay logo */}
+        {/* Overlay logo: si el proyecto tiene logo propio, lo usa */}
         <div className="pointer-events-none absolute left-4 top-4 z-20">
-          <Logo asLink={false} className="rounded-md bg-black/40 px-3 py-2 backdrop-blur" />
+          {logoUrl ? (
+            <span className="inline-flex items-center rounded-md bg-white/95 px-2 py-1 shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt={projectName}
+                className="h-6 w-auto"
+                draggable={false}
+              />
+            </span>
+          ) : (
+            <Logo
+              asLink={false}
+              className="rounded-md bg-black/40 px-3 py-2 backdrop-blur"
+            />
+          )}
         </div>
 
-        {/* Título de escena */}
+        {/* Título + descripción de escena */}
         {activeScene && (
-          <div className="pointer-events-none absolute right-4 top-4 z-20 rounded-md bg-black/40 px-3 py-2 text-xs uppercase tracking-wider backdrop-blur">
-            <span className="text-text-subtle">{projectName}</span>{' '}
-            <span className="mx-1 text-text-subtle">·</span>
-            <span className="text-gold">{activeScene.title}</span>
+          <div className="pointer-events-none absolute right-4 top-4 z-20 max-w-xs rounded-md bg-black/40 px-3 py-2 backdrop-blur">
+            <div className="text-xs uppercase tracking-wider">
+              <span className="text-text-subtle">{projectName}</span>{' '}
+              <span className="mx-1 text-text-subtle">·</span>
+              <span className="text-gold">{activeScene.title}</span>
+            </div>
+            {activeScene.description && (
+              <div className="mt-1 text-[11px] leading-snug text-white/85">
+                {activeScene.description}
+              </div>
+            )}
           </div>
         )}
 

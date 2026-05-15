@@ -159,19 +159,28 @@ export function ScenesManager({
     }
   }
 
-  async function renameScene(id: string, title: string) {
+  async function updateScene(
+    id: string,
+    patch: { title?: string; description?: string | null }
+  ) {
     const res = await fetch(`/api/admin/scenes/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title }),
+      body: JSON.stringify(patch),
     });
     if (!res.ok) {
-      showToast('error', 'No se pudo renombrar');
-      return;
+      showToast('error', 'No se pudo guardar');
+      return false;
     }
     setScenes((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, title } : s))
+      prev.map((s) => (s.id === id ? { ...s, ...patch } : s))
     );
+    return true;
+  }
+
+  // Para SortableScene (rename inline).
+  async function renameScene(id: string, title: string) {
+    await updateScene(id, { title });
   }
 
   async function deleteScene(id: string) {
@@ -277,7 +286,92 @@ export function ScenesManager({
           </SortableContext>
         </DndContext>
       )}
+
+      {/* Panel de detalles de la escena activa */}
+      {activeSceneId && (
+        <ActiveSceneDetails
+          key={activeSceneId}
+          scene={scenes.find((s) => s.id === activeSceneId)!}
+          onSave={(patch) => updateScene(activeSceneId, patch)}
+        />
+      )}
     </section>
+  );
+}
+
+// Editor de título + descripción de la escena activa.
+function ActiveSceneDetails({
+  scene,
+  onSave,
+}: {
+  scene: SceneWithUrl;
+  onSave: (patch: { title: string; description: string | null }) => Promise<boolean | void>;
+}) {
+  const [title, setTitle] = useState(scene.title);
+  const [description, setDescription] = useState(scene.description ?? '');
+  const [saving, setSaving] = useState(false);
+
+  // Detectamos si hay cambios sin guardar.
+  const dirty =
+    title.trim() !== scene.title ||
+    (description.trim() || null) !== (scene.description || null);
+
+  async function handleSave() {
+    setSaving(true);
+    await onSave({
+      title: title.trim() || 'Escena sin título',
+      description: description.trim() || null,
+    });
+    setSaving(false);
+  }
+
+  return (
+    <div className="mt-5 rounded-md border border-gold/20 bg-bg-elevated/50 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gold">
+          ▸ Escena seleccionada
+        </h3>
+        {dirty && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary text-xs"
+          >
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1 block text-[11px] uppercase tracking-wider text-text-muted">
+          Título (visible en el visor)
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="input-field"
+          placeholder="Ej. Sala de espera"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-[11px] uppercase tracking-wider text-text-muted">
+          Descripción (visible al cambiar de escena)
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          className="input-field resize-none"
+          placeholder="Ej. Recibidor con monitores informativos y muestrario de gafas."
+        />
+        <p className="mt-1 text-[10px] text-text-subtle">
+          Opcional. Si la escribes, aparece como overlay al entrar a esta escena.
+        </p>
+      </div>
+    </div>
   );
 }
 

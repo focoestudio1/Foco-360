@@ -15,6 +15,7 @@ export type SceneWithUrl = {
   id: string;
   project_id: string;
   title: string;
+  description: string | null;
   image_url: string;
   order_index: number;
   signed_url: string | null;
@@ -39,6 +40,9 @@ export type Project = {
   views: number;
   cover_url: string | null;
   cover_signed_url: string | null;
+  // Logo personalizado del proyecto (anula el global si está seteado).
+  logo_url: string | null;
+  logo_signed_url: string | null;
   // true si el proyecto tiene contraseña configurada (no expone el hash).
   has_password: boolean;
   last_viewed_at: string | null;

@@ -21,6 +21,9 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}));
   const update: Record<string, any> = {};
   if (typeof body.title === 'string') update.title = body.title.trim();
+  if ('description' in body) {
+    update.description = body.description?.toString().trim() || null;
+  }
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'Sin cambios' }, { status: 400 });

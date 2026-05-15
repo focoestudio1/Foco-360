@@ -116,7 +116,9 @@ export function PannellumViewer({
           id: h.id,
           pitch: h.pitch,
           yaw: h.yaw,
-          type: 'scene',
+          // Usamos cssClass propio para estilo personalizado (flecha animada).
+          type: 'info',
+          cssClass: 'foco-hotspot',
           text: h.label || 'Ir',
           clickHandlerFunc: () => onHotspotClick(h),
         })),
@@ -178,17 +180,82 @@ export function PannellumViewer({
         aria-label="Visor 360°"
       />
 
-      {/* Globales para ocultar el load-screen nativo de Pannellum
-          (que es el que filtra la URL firmada). */}
+      {/* Globales:
+          - Ocultar load-screen y error nativo de Pannellum (filtran URL firmada).
+          - Estilizar hotspots como flecha dorada animada (foco-hotspot). */}
       <style jsx global>{`
         .pnlm-load-box,
         .pnlm-load-button {
           display: none !important;
         }
-        /* Mensaje de error de Pannellum: lo escondemos también porque
-           imprime el contenido bruto del fetch. Mostramos el nuestro. */
         .pnlm-error-msg {
           display: none !important;
+        }
+
+        /* ====== Hotspot dorado animado ====== */
+        .pnlm-hotspot.foco-hotspot {
+          width: 56px;
+          height: 56px;
+          margin-left: -28px;
+          margin-top: -28px;
+          border-radius: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(212, 175, 55, 0.95) 0%,
+            rgba(212, 175, 55, 0.7) 60%,
+            rgba(212, 175, 55, 0) 75%
+          );
+          border: 2px solid #d4af37;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7);
+          animation: foco-hotspot-pulse 1.8s ease-out infinite;
+          transition: transform 0.2s ease;
+        }
+        .pnlm-hotspot.foco-hotspot:hover {
+          transform: scale(1.15);
+          animation-play-state: paused;
+        }
+        /* Flecha hacia adentro (chevron) usando pseudo-elemento */
+        .pnlm-hotspot.foco-hotspot::before {
+          content: '';
+          width: 14px;
+          height: 14px;
+          border-top: 3px solid #fff;
+          border-right: 3px solid #fff;
+          transform: rotate(45deg);
+          /* Ajuste óptico: la flecha sube un poco para verse centrada */
+          margin-top: -2px;
+          filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+        }
+        @keyframes foco-hotspot-pulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7),
+              0 0 18px 4px rgba(212, 175, 55, 0.4);
+          }
+          70% {
+            box-shadow: 0 0 0 22px rgba(212, 175, 55, 0),
+              0 0 18px 4px rgba(212, 175, 55, 0.4);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(212, 175, 55, 0),
+              0 0 18px 4px rgba(212, 175, 55, 0.4);
+          }
+        }
+
+        /* Tooltip default de Pannellum: lo restilizamos */
+        .pnlm-hotspot.foco-hotspot .pnlm-tooltip span {
+          background: rgba(0, 0, 0, 0.85) !important;
+          color: #fff !important;
+          padding: 6px 10px !important;
+          border-radius: 6px !important;
+          font-size: 11px !important;
+          letter-spacing: 0.5px !important;
+          text-transform: uppercase !important;
+          border: 1px solid rgba(212, 175, 55, 0.4) !important;
+          white-space: nowrap;
         }
       `}</style>
     </>

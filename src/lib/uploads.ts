@@ -12,7 +12,7 @@
 
 import imageCompression from 'browser-image-compression';
 
-export type UploadKind = 'cover' | 'scene';
+export type UploadKind = 'cover' | 'scene' | 'logo';
 
 export type UploadProgress = {
   // Fase actual: comprimir o subir.
@@ -43,8 +43,9 @@ async function compressIfNeeded(
 
   // Para escenas (panoramas equirrectangulares) queremos máx 4096×2048.
   // Para portadas basta con 1920 de ancho — son thumbnails.
-  const maxDim = kind === 'scene' ? 4096 : 1920;
-  const targetMB = kind === 'scene' ? 5 : 1.5;
+  // Para logos: 800px más que suficiente, peso minúsculo.
+  const maxDim = kind === 'scene' ? 4096 : kind === 'logo' ? 800 : 1920;
+  const targetMB = kind === 'scene' ? 5 : kind === 'logo' ? 0.3 : 1.5;
 
   const options = {
     maxSizeMB: targetMB,
@@ -162,6 +163,29 @@ export async function uploadScene(
   if (!confirm.ok) {
     const err = await confirm.json().catch(() => ({}));
     throw new Error(err.error || 'Error al confirmar la escena');
+  }
+  return confirm.json();
+}
+
+// API pública: sube el logo del proyecto (comprime + confirmación DB).
+export async function uploadLogo(
+  projectId: string,
+  file: File,
+  onProgress?: (p: UploadProgress) => void
+): Promise<{ key: string }> {
+  const compressed = await compressIfNeeded(file, 'logo', (pct) =>
+    onProgress?.({ phase: 'compressing', loaded: 0, total: 0, pct })
+  );
+  const { uploadUrl, key } = await getSignedUrl(projectId, 'logo', compressed);
+  await putWithProgress(uploadUrl, compressed, onProgress);
+  const confirm = await fetch(`/api/admin/projects/${projectId}/logo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key }),
+  });
+  if (!confirm.ok) {
+    const err = await confirm.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al confirmar el logo');
   }
   return confirm.json();
 }

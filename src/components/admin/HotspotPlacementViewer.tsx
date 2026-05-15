@@ -107,6 +107,7 @@ export function HotspotPlacementViewer({
           pitch: h.pitch,
           yaw: h.yaw,
           type: 'info',
+          cssClass: 'foco-hotspot',
           text: h.label || '(sin etiqueta)',
           clickHandlerFunc: () => onHotspotClick?.(h),
         })),
