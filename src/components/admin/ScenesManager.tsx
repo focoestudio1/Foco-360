@@ -23,7 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/Button';
 import { showToast } from '@/components/ui/Toast';
-import { uploadScene } from '@/lib/uploads';
+import { uploadScene, getImageDimensions } from '@/lib/uploads';
 import type { SceneWithUrl } from './ProjectEditor';
 
 export function ScenesManager({
@@ -58,7 +58,44 @@ export function ScenesManager({
 
   async function uploadFiles(files: FileList) {
     setUploading(true);
-    const all = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    const candidates = Array.from(files).filter((f) =>
+      f.type.startsWith('image/')
+    );
+
+    // Validación de aspect ratio: panoramas equirrectangulares son 2:1.
+    // Aceptamos rango 1.8–2.2 para tolerar pequeñas variaciones de cámara.
+    const checked = await Promise.all(
+      candidates.map(async (file) => {
+        const dim = await getImageDimensions(file);
+        const ratio = dim ? dim.width / dim.height : null;
+        return {
+          file,
+          ratio,
+          ok: ratio === null ? true : ratio >= 1.8 && ratio <= 2.2,
+        };
+      })
+    );
+
+    let all = candidates;
+    const bad = checked.filter((c) => !c.ok);
+    if (bad.length > 0) {
+      const list = bad
+        .map((b) => `• ${b.file.name} (ratio ${b.ratio?.toFixed(2)}:1)`)
+        .join('\n');
+      const proceed = confirm(
+        `Estos archivos no parecen fotos 360° equirrectangulares ` +
+          `(deberían tener proporción 2:1):\n\n${list}\n\n` +
+          `Si los subes igual, se verán deformados en el visor. ¿Continuar?`
+      );
+      if (!proceed) {
+        all = checked.filter((c) => c.ok).map((c) => c.file);
+        if (all.length === 0) {
+          setUploading(false);
+          return;
+        }
+      }
+    }
+
     let done = 0;
     for (let i = 0; i < all.length; i++) {
       const file = all[i];

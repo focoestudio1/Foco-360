@@ -145,14 +145,15 @@ export function ProjectSettings({
         <code className="block break-all rounded bg-bg-elevated px-3 py-2 text-xs text-gold">
           {tourLink}
         </code>
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between gap-2 text-xs">
           <a
-            href={tourLink}
+            href={`${tourLink}?preview=1`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-text-muted hover:text-text"
+            className="text-text-muted underline-offset-2 hover:text-text hover:underline"
+            title="Abre el tour como admin, saltando la contraseña."
           >
-            Abrir en nueva pestaña →
+            Vista previa →
           </a>
           <CopyLinkButton url={tourLink} />
         </div>

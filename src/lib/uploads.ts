@@ -72,6 +72,26 @@ async function getSignedUrl(
   return res.json();
 }
 
+// Lee dimensiones de una imagen sin subirla (usando un Image en memoria).
+// Devuelve null si no se puede leer.
+export function getImageDimensions(
+  file: File
+): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
 // API pública: sube una escena (con confirmación DB).
 export async function uploadScene(
   projectId: string,

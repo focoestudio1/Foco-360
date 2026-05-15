@@ -35,11 +35,17 @@ export function TourViewer({
   projectName,
   scenes,
   hotspots,
+  isPreview = false,
+  isInactive = false,
 }: {
   slug: string;
   projectName: string;
   scenes: ViewerScene[];
   hotspots: ViewerHotspot[];
+  // Modo preview de admin (bypass contraseña).
+  isPreview?: boolean;
+  // El proyecto está desactivado (solo visible en preview).
+  isInactive?: boolean;
 }) {
   const [activeId, setActiveId] = useState<string>(scenes[0]?.id);
   const [fullscreen, setFullscreen] = useState(false);
@@ -68,6 +74,18 @@ export function TourViewer({
 
   return (
     <div className="fixed inset-0 flex flex-col bg-black text-white">
+      {/* Banner de vista previa de admin */}
+      {isPreview && (
+        <div className="z-30 flex items-center justify-center gap-3 border-b border-gold/30 bg-gold/10 px-4 py-1.5 text-[11px] font-medium uppercase tracking-wider text-gold backdrop-blur">
+          <span>Vista previa (admin)</span>
+          {isInactive && (
+            <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-red-200">
+              Tour desactivado · no visible para clientes
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Visor 360° (ocupa toda la altura) */}
       <div className="relative flex-1">
         {activeScene && (

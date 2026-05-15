@@ -11,6 +11,7 @@
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
+import { getAdminUser } from '@/lib/auth';
 import { getSignedReadUrl } from '@/lib/r2';
 import { TourAccess } from '@/components/viewer/TourAccess';
 import { TourViewer } from '@/components/viewer/TourViewer';
@@ -37,8 +38,10 @@ export async function generateMetadata({
 
 export default async function TourPage({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams: { preview?: string };
 }) {
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
@@ -49,15 +52,20 @@ export default async function TourPage({
 
   if (!project) notFound();
 
-  // ---- Tour desactivado ----
-  if (!project.is_active) {
+  // ---- Vista previa de admin (bypass contraseña + estado inactivo) ----
+  // Si el usuario es admin y pasa ?preview=1, entra directo sin
+  // incrementar el contador de vistas. Útil para construir tours.
+  const isPreview = searchParams.preview === '1' && (await getAdminUser());
+
+  // ---- Tour desactivado (solo para visitantes, no para admin en preview) ----
+  if (!project.is_active && !isPreview) {
     return <UnavailableTour />;
   }
 
   // ---- Verifica cookie de acceso ----
   const cookieStore = cookies();
   const hasAccess =
-    cookieStore.get(`tour_access_${params.slug}`)?.value === '1';
+    isPreview || cookieStore.get(`tour_access_${params.slug}`)?.value === '1';
 
   if (!hasAccess) {
     const coverUrl = project.cover_url
@@ -111,6 +119,8 @@ export default async function TourPage({
       slug={params.slug}
       projectName={project.name}
       scenes={scenesSigned}
+      isPreview={!!isPreview}
+      isInactive={!project.is_active}
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,
