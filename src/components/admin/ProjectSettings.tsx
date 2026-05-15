@@ -11,6 +11,7 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { showToast } from '@/components/ui/Toast';
 import { CopyLinkButton } from './CopyLinkButton';
+import { uploadCover as uploadCoverDirect } from '@/lib/uploads';
 import type { Project } from './ProjectEditor';
 
 export function ProjectSettings({
@@ -31,6 +32,7 @@ export function ProjectSettings({
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
@@ -68,20 +70,17 @@ export function ProjectSettings({
       return;
     }
     setUploading(true);
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch(`/api/admin/projects/${project.id}/cover`, {
-      method: 'POST',
-      body: fd,
-    });
-    if (!res.ok) {
-      showToast('error', 'Error al subir portada');
+    setUploadPct(0);
+    try {
+      await uploadCoverDirect(project.id, file, (p) => setUploadPct(p.pct));
+      showToast('success', 'Portada actualizada');
+      onUpdated();
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
       setUploading(false);
-      return;
+      setUploadPct(0);
     }
-    showToast('success', 'Portada actualizada');
-    onUpdated();
-    setUploading(false);
   }
 
   return (
@@ -122,8 +121,20 @@ export function ProjectSettings({
           loading={uploading}
           className="w-full"
         >
-          {project.cover_url ? 'Cambiar portada' : 'Subir portada'}
+          {uploading
+            ? `Subiendo… ${uploadPct}%`
+            : project.cover_url
+            ? 'Cambiar portada'
+            : 'Subir portada'}
         </Button>
+        {uploading && (
+          <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
+            <div
+              className="h-full bg-gold transition-all"
+              style={{ width: `${uploadPct}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Card link público */}

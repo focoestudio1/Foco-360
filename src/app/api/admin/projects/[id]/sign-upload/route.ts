@@ -1,0 +1,71 @@
+// ============================================================
+// API: /api/admin/projects/[id]/sign-upload
+//
+// POST { kind: 'cover' | 'scene', filename, contentType }
+//  → { uploadUrl, key }
+//
+// El navegador hace PUT directo a uploadUrl con el archivo y
+// luego llama al endpoint de confirmación correspondiente:
+//   - cover  → POST /api/admin/projects/[id]/cover  { key }
+//   - scene  → POST /api/admin/projects/[id]/scenes { key, title }
+// ============================================================
+
+import { NextResponse, type NextRequest } from 'next/server';
+import { getAdminUser } from '@/lib/auth';
+import { createSupabaseAdminClient } from '@/lib/supabase-server';
+import { buildCoverKey, buildSceneKey, getSignedPutUrl } from '@/lib/r2';
+
+export const dynamic = 'force-dynamic';
+
+// Tamaño máximo aceptado (50 MB). El SDK no lo enforce, lo validamos aquí.
+const MAX_SIZE = 50 * 1024 * 1024;
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const admin = await getAdminUser();
+  if (!admin) return new NextResponse('Unauthorized', { status: 401 });
+
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
+  }
+
+  const kind = body.kind;
+  const filename = String(body.filename ?? '');
+  const contentType = String(body.contentType ?? '');
+  const size = Number(body.size ?? 0);
+
+  if (kind !== 'cover' && kind !== 'scene') {
+    return NextResponse.json({ error: 'kind inválido' }, { status: 400 });
+  }
+  if (!filename || !contentType.startsWith('image/')) {
+    return NextResponse.json({ error: 'Archivo inválido' }, { status: 400 });
+  }
+  if (size > MAX_SIZE) {
+    return NextResponse.json(
+      { error: `Archivo demasiado grande (>${MAX_SIZE / 1024 / 1024} MB)` },
+      { status: 413 }
+    );
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data: project } = await supabase
+    .from('projects')
+    .select('slug')
+    .eq('id', params.id)
+    .single();
+  if (!project) {
+    return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 });
+  }
+
+  const key =
+    kind === 'cover'
+      ? buildCoverKey(project.slug, filename)
+      : buildSceneKey(project.slug, filename);
+
+  const uploadUrl = await getSignedPutUrl(key, contentType);
+
+  return NextResponse.json({ uploadUrl, key });
+}

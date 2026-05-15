@@ -63,6 +63,23 @@ export async function getSignedReadUrl(
   return getSignedUrl(getClient(), cmd, { expiresIn });
 }
 
+// Genera URL firmada temporal para SUBIR (PUT) un objeto.
+// El navegador la usa para hacer PUT directo a R2 sin pasar por
+// nuestro servidor. El Content-Type del PUT debe coincidir exacto
+// con el que se pasa aquí (lo firma el SDK).
+export async function getSignedPutUrl(
+  key: string,
+  contentType: string,
+  expiresIn = 900 // 15 minutos — suficiente para subir una foto pesada.
+): Promise<string> {
+  const cmd = new PutObjectCommand({
+    Bucket: BUCKET(),
+    Key: key,
+    ContentType: contentType,
+  });
+  return getSignedUrl(getClient(), cmd, { expiresIn });
+}
+
 // Elimina un objeto por key.
 export async function deleteObject(key: string): Promise<void> {
   await getClient().send(

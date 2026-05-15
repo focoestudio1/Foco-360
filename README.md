@@ -99,8 +99,26 @@ npm install
    - `Access Key ID` → `R2_ACCESS_KEY_ID`
    - `Secret Access Key` → `R2_SECRET_ACCESS_KEY`
    - El Account ID lo encuentras arriba a la derecha en R2 → `R2_ACCOUNT_ID`
+6. **CORS del bucket** (obligatorio): el navegador hace PUT directo al bucket para subir las panorámicas. Ve a tu bucket → **Settings → CORS Policy → Add CORS policy** y pega:
 
-> Las imágenes nunca se sirven públicamente: el backend genera URLs firmadas temporales (1h por defecto) cada vez que el visor las necesita.
+   ```json
+   [
+     {
+       "AllowedOrigins": [
+         "http://localhost:3000",
+         "https://tu-dominio.com"
+       ],
+       "AllowedMethods": ["PUT", "GET"],
+       "AllowedHeaders": ["Content-Type"],
+       "ExposeHeaders": [],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+
+   Reemplaza `tu-dominio.com` por tu dominio Vercel/producción. Sin esto el upload desde el navegador falla con error CORS.
+
+> Las imágenes nunca se sirven públicamente: el backend genera URLs firmadas temporales (1h por defecto) cada vez que el visor las necesita. Las subidas también usan URLs firmadas de PUT (15 min de validez).
 
 ### 4. Configurar variables de entorno
 
@@ -191,11 +209,14 @@ Abre http://localhost:3000
 - **R2**: el bucket es privado. Las URLs se firman con AWS SDK y caducan en `R2_SIGNED_URL_EXPIRES` segundos.
 - **RLS**: las tablas tienen Row Level Security activado sin políticas públicas. Todo el acceso va por API routes con Service Role.
 
-### Límites de Vercel
+### Subida directa a R2
 
-- En el plan Hobby el body de las requests está limitado a ~4.5 MB. Si subes panorámicas pesadas (>4 MB) considera:
-  - Comprimirlas antes (recomendado: JPEG calidad 85, máx. 8192×4096).
-  - Migrar a subida directa con URL firmada (PUT desde el navegador). Esto es un TODO para una v2.
+Las panorámicas se suben **directamente del navegador a R2** vía URL firmada PUT — no pasan por Next.js. Esto:
+- Elimina el límite de ~4.5 MB de body que tiene Vercel Hobby.
+- Permite panorámicas grandes (hasta 50 MB por defecto, configurable en `sign-upload/route.ts`).
+- Muestra barra de progreso real durante la subida.
+
+Requiere CORS configurado en el bucket (ver paso 6 de configuración R2).
 
 ### Escalabilidad / próximos pasos
 
@@ -203,7 +224,6 @@ Abre http://localhost:3000
 - Estadísticas más ricas (vistas por escena, tiempo promedio).
 - Multi-resolución (tiles) para imágenes muy grandes.
 - Branding personalizable por proyecto (logo, color).
-- Subida directa firmada (PUT a R2 desde el navegador) para superar el límite de body de Vercel Hobby.
 
 ---
 

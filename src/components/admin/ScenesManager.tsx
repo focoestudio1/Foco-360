@@ -23,6 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/Button';
 import { showToast } from '@/components/ui/Toast';
+import { uploadScene } from '@/lib/uploads';
 import type { SceneWithUrl } from './ProjectEditor';
 
 export function ScenesManager({
@@ -42,6 +43,13 @@ export function ScenesManager({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  // Estado de subida: cuál archivo va, su % y total de la cola.
+  const [progress, setProgress] = useState<{
+    fileName: string;
+    pct: number;
+    index: number;
+    total: number;
+  } | null>(null);
 
   const sensors = useSensors(
     // PointerSensor con distancia mínima para no interferir con clicks.
@@ -50,28 +58,38 @@ export function ScenesManager({
 
   async function uploadFiles(files: FileList) {
     setUploading(true);
+    const all = Array.from(files).filter((f) => f.type.startsWith('image/'));
     let done = 0;
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) continue;
-      const fd = new FormData();
-      fd.append('file', file);
-      // Título por defecto = nombre del archivo sin extensión.
-      fd.append('title', file.name.replace(/\.[^/.]+$/, ''));
-      const res = await fetch(`/api/admin/projects/${projectId}/scenes`, {
-        method: 'POST',
-        body: fd,
-      });
-      if (res.ok) {
-        const { scene } = await res.json();
+    for (let i = 0; i < all.length; i++) {
+      const file = all[i];
+      const title = file.name.replace(/\.[^/.]+$/, '');
+      try {
+        setProgress({
+          fileName: file.name,
+          pct: 0,
+          index: i + 1,
+          total: all.length,
+        });
+        const { scene } = await uploadScene(projectId, file, title, (p) => {
+          setProgress({
+            fileName: file.name,
+            pct: p.pct,
+            index: i + 1,
+            total: all.length,
+          });
+        });
         setScenes((prev) => [...prev, { ...scene, signed_url: null }]);
         done++;
-      } else {
-        const err = await res.json().catch(() => ({}));
-        showToast('error', `Error subiendo ${file.name}: ${err.error || ''}`);
+      } catch (e) {
+        showToast('error', `Error subiendo ${file.name}: ${(e as Error).message}`);
       }
     }
+    setProgress(null);
     if (done > 0) {
-      showToast('success', `${done} escena${done === 1 ? '' : 's'} subida${done === 1 ? '' : 's'}`);
+      showToast(
+        'success',
+        `${done} escena${done === 1 ? '' : 's'} subida${done === 1 ? '' : 's'}`
+      );
       // Refresca para obtener URLs firmadas.
       onChanged();
     }
@@ -160,6 +178,25 @@ export function ScenesManager({
           + Subir escenas
         </Button>
       </div>
+
+      {/* Barra de progreso mientras se sube */}
+      {progress && (
+        <div className="mb-4 rounded-md border border-border bg-bg-elevated p-3">
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="truncate text-text-muted">
+              Subiendo <span className="text-text">{progress.fileName}</span>{' '}
+              ({progress.index}/{progress.total})
+            </span>
+            <span className="tabular-nums text-gold">{progress.pct}%</span>
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
+            <div
+              className="h-full bg-gold transition-all"
+              style={{ width: `${progress.pct}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {scenes.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-border py-12 text-center">
