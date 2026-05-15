@@ -44,9 +44,10 @@ export function ScenesManager({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  // Estado de subida: cuál archivo va, su % y total de la cola.
+  // Estado de subida: cuál archivo va, su fase, % y total de la cola.
   const [progress, setProgress] = useState<{
     fileName: string;
+    phase: 'compressing' | 'uploading';
     pct: number;
     index: number;
     total: number;
@@ -104,6 +105,7 @@ export function ScenesManager({
       try {
         setProgress({
           fileName: file.name,
+          phase: 'compressing',
           pct: 0,
           index: i + 1,
           total: all.length,
@@ -111,6 +113,7 @@ export function ScenesManager({
         const { scene } = await uploadScene(projectId, file, title, (p) => {
           setProgress({
             fileName: file.name,
+            phase: p.phase,
             pct: p.pct,
             index: i + 1,
             total: all.length,
@@ -217,19 +220,24 @@ export function ScenesManager({
         </Button>
       </div>
 
-      {/* Barra de progreso mientras se sube */}
+      {/* Barra de progreso mientras se procesa/sube */}
       {progress && (
         <div className="mb-4 rounded-md border border-border bg-bg-elevated p-3">
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="truncate text-text-muted">
-              Subiendo <span className="text-text">{progress.fileName}</span>{' '}
+              {progress.phase === 'compressing' ? 'Optimizando' : 'Subiendo'}{' '}
+              <span className="text-text">{progress.fileName}</span>{' '}
               ({progress.index}/{progress.total})
             </span>
             <span className="tabular-nums text-gold">{progress.pct}%</span>
           </div>
           <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
             <div
-              className="h-full bg-gold transition-all"
+              className={`h-full transition-all ${
+                progress.phase === 'compressing'
+                  ? 'bg-blue-400'
+                  : 'bg-gold'
+              }`}
               style={{ width: `${progress.pct}%` }}
             />
           </div>

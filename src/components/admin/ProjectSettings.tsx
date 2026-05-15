@@ -34,6 +34,9 @@ export function ProjectSettings({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
+  const [uploadPhase, setUploadPhase] = useState<'compressing' | 'uploading'>(
+    'compressing'
+  );
   const fileRef = useRef<HTMLInputElement>(null);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
@@ -72,8 +75,12 @@ export function ProjectSettings({
     }
     setUploading(true);
     setUploadPct(0);
+    setUploadPhase('compressing');
     try {
-      await uploadCoverDirect(project.id, file, (p) => setUploadPct(p.pct));
+      await uploadCoverDirect(project.id, file, (p) => {
+        setUploadPct(p.pct);
+        setUploadPhase(p.phase);
+      });
       showToast('success', 'Portada actualizada');
       onUpdated();
     } catch (e) {
@@ -125,7 +132,7 @@ export function ProjectSettings({
           className="w-full"
         >
           {uploading
-            ? `Subiendo… ${uploadPct}%`
+            ? `${uploadPhase === 'compressing' ? 'Optimizando' : 'Subiendo'}… ${uploadPct}%`
             : project.cover_url
             ? 'Cambiar portada'
             : 'Subir portada'}
@@ -133,7 +140,9 @@ export function ProjectSettings({
         {uploading && (
           <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
             <div
-              className="h-full bg-gold transition-all"
+              className={`h-full transition-all ${
+                uploadPhase === 'compressing' ? 'bg-blue-400' : 'bg-gold'
+              }`}
               style={{ width: `${uploadPct}%` }}
             />
           </div>
