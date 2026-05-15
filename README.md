@@ -127,10 +127,23 @@ R2_ENDPOINT=https://xxxxxxxxxxxx.r2.cloudflarestorage.com
 R2_SIGNED_URL_EXPIRES=3600
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NEXT_PUBLIC_BRAND_NAME=MI PRODUCTORA 360°
+NEXT_PUBLIC_BRAND_NAME=FOCO
+NEXT_PUBLIC_LOGO_URL=/logo.png
 ```
 
-### 5. Correr en local
+### 5. Subir tu logo
+
+Guarda el archivo de tu logo en `public/logo.png` (también acepta `.svg` o `.jpg` — ajusta `NEXT_PUBLIC_LOGO_URL`). Idealmente:
+
+- Formato PNG con fondo transparente o SVG.
+- Aspecto horizontal (~2:1 a 4:1).
+- Ancho de 400–800 px es suficiente — el componente lo redimensiona a 24 px de alto.
+
+El logo se muestra dentro de un "chip" claro con bordes redondeados para garantizar contraste en cualquier fondo (oscuro del admin, sobre la portada del tour, etc.).
+
+Si no defines `NEXT_PUBLIC_LOGO_URL`, la app muestra el `NEXT_PUBLIC_BRAND_NAME` como texto con un punto dorado.
+
+### 6. Correr en local
 
 ```bash
 npm run dev
@@ -141,6 +154,8 @@ Abre http://localhost:3000
 - Landing pública: `/`
 - Login admin: `/admin/login`
 - Después de login: `/admin`
+
+---
 
 ---
 
