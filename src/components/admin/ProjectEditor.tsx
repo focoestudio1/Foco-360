@@ -19,6 +19,9 @@ export type SceneWithUrl = {
   image_url: string;
   order_index: number;
   signed_url: string | null;
+  // Audio narración opcional.
+  audio_url: string | null;
+  audio_signed_url: string | null;
 };
 
 export type Hotspot = {
@@ -45,6 +48,9 @@ export type Project = {
   logo_signed_url: string | null;
   // true si el proyecto tiene contraseña configurada (no expone el hash).
   has_password: boolean;
+  // WhatsApp opcional para botón flotante.
+  whatsapp_phone: string | null;
+  whatsapp_message: string | null;
   last_viewed_at: string | null;
   created_at: string;
 };

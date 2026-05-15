@@ -13,7 +13,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getAdminUser } from '@/lib/auth';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
-import { buildCoverKey, buildLogoKey, buildSceneKey, getSignedPutUrl } from '@/lib/r2';
+import { buildAudioKey, buildCoverKey, buildLogoKey, buildSceneKey, getSignedPutUrl } from '@/lib/r2';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,11 +37,29 @@ export async function POST(
   const contentType = String(body.contentType ?? '');
   const size = Number(body.size ?? 0);
 
-  if (kind !== 'cover' && kind !== 'scene' && kind !== 'logo') {
+  if (
+    kind !== 'cover' &&
+    kind !== 'scene' &&
+    kind !== 'logo' &&
+    kind !== 'audio'
+  ) {
     return NextResponse.json({ error: 'kind inválido' }, { status: 400 });
   }
-  if (!filename || !contentType.startsWith('image/')) {
-    return NextResponse.json({ error: 'Archivo inválido' }, { status: 400 });
+
+  // Validación de tipo MIME por kind.
+  const isImage = contentType.startsWith('image/');
+  const isAudio = contentType.startsWith('audio/');
+  if (kind === 'audio') {
+    if (!filename || !isAudio) {
+      return NextResponse.json(
+        { error: 'Archivo de audio inválido (MP3, M4A, OGG, WAV)' },
+        { status: 400 }
+      );
+    }
+  } else {
+    if (!filename || !isImage) {
+      return NextResponse.json({ error: 'Archivo inválido' }, { status: 400 });
+    }
   }
   if (size > MAX_SIZE) {
     return NextResponse.json(
@@ -65,6 +83,8 @@ export async function POST(
       ? buildCoverKey(project.slug, filename)
       : kind === 'logo'
       ? buildLogoKey(project.slug, filename)
+      : kind === 'audio'
+      ? buildAudioKey(project.slug, filename)
       : buildSceneKey(project.slug, filename);
 
   const uploadUrl = await getSignedPutUrl(key, contentType);

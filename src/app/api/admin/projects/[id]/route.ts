@@ -60,6 +60,9 @@ export async function GET(
     (scenes ?? []).map(async (s) => ({
       ...s,
       signed_url: await getSignedReadUrl(s.image_url).catch(() => null),
+      audio_signed_url: s.audio_url
+        ? await getSignedReadUrl(s.audio_url).catch(() => null)
+        : null,
     }))
   );
 
@@ -102,6 +105,17 @@ export async function PATCH(
     update.description = body.description?.toString().trim() || null;
   if (typeof body.is_active === 'boolean') update.is_active = body.is_active;
   if (typeof body.cover_url === 'string') update.cover_url = body.cover_url;
+
+  // WhatsApp: teléfono (formato internacional sin +) + mensaje pre-cargado.
+  if ('whatsapp_phone' in body) {
+    const raw = body.whatsapp_phone?.toString() ?? '';
+    const digits = raw.replace(/\D/g, '');
+    update.whatsapp_phone = digits || null;
+  }
+  if ('whatsapp_message' in body) {
+    update.whatsapp_message =
+      body.whatsapp_message?.toString().trim() || null;
+  }
 
   // Contraseña:
   //   - body.password = "xxxxxxxx"  → setea/cambia contraseña

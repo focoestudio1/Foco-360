@@ -46,7 +46,7 @@ export default async function TourPage({
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url')
+    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -113,12 +113,18 @@ export default async function TourPage({
 
   // URL pasada a Pannellum: pasa por nuestro proxy /api/tour/<slug>/image
   // para evitar CORS de R2 y ocultar la firma del navegador.
-  const scenesSigned = scenes.map((s) => ({
-    id: s.id,
-    title: s.title,
-    description: s.description,
-    url: `/api/tour/${params.slug}/image?key=${encodeURIComponent(s.image_url)}`,
-  }));
+  // Audio NO necesita proxy (el elemento <audio> no aplica CORS por defecto).
+  const scenesSigned = await Promise.all(
+    scenes.map(async (s) => ({
+      id: s.id,
+      title: s.title,
+      description: s.description,
+      url: `/api/tour/${params.slug}/image?key=${encodeURIComponent(s.image_url)}`,
+      audioUrl: s.audio_url
+        ? await getSignedReadUrl(s.audio_url).catch(() => null)
+        : null,
+    }))
+  );
 
   // Logo del proyecto (si tiene uno propio).
   const logoUrl = project.logo_url
@@ -133,6 +139,8 @@ export default async function TourPage({
       isPreview={!!isPreview}
       isInactive={!project.is_active}
       logoUrl={logoUrl}
+      whatsappPhone={project.whatsapp_phone}
+      whatsappMessage={project.whatsapp_message}
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,

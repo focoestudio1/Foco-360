@@ -12,7 +12,7 @@
 
 import imageCompression from 'browser-image-compression';
 
-export type UploadKind = 'cover' | 'scene' | 'logo';
+export type UploadKind = 'cover' | 'scene' | 'logo' | 'audio';
 
 export type UploadProgress = {
   // Fase actual: comprimir o subir.
@@ -26,10 +26,12 @@ export type UploadProgress = {
 
 // Umbrales por tipo (en MB). Logos suelen ser chicos pero queremos
 // optimizar incluso PNG medianos. Escenas/portadas tienen umbral alto.
+// Audio: no se comprime (umbral infinito).
 const THRESHOLDS_MB: Record<UploadKind, number> = {
   scene: 5,
   cover: 5,
   logo: 1,
+  audio: Infinity,
 };
 
 // Comprime si hace falta. Mantiene calidad visual alta:
@@ -47,9 +49,9 @@ async function compressIfNeeded(
   // Salta si ya pesa poco.
   if (file.size < THRESHOLDS_MB[kind] * 1024 * 1024) return file;
 
+  // (audio nunca entra aquí porque su umbral es Infinity)
   const maxDim = kind === 'scene' ? 4096 : kind === 'logo' ? 800 : 1920;
-  const targetMB =
-    kind === 'scene' ? 5 : kind === 'logo' ? 0.5 : 1.5;
+  const targetMB = kind === 'scene' ? 5 : kind === 'logo' ? 0.5 : 1.5;
 
   // Para escenas/portadas convertimos a JPEG (mejor compresión).
   // Para logos preservamos el formato original — un PNG con
@@ -175,6 +177,28 @@ export async function uploadScene(
   if (!confirm.ok) {
     const err = await confirm.json().catch(() => ({}));
     throw new Error(err.error || 'Error al confirmar la escena');
+  }
+  return confirm.json();
+}
+
+// API pública: sube un audio para una escena. No se comprime.
+// La confirmación va al endpoint de la escena, no del proyecto.
+export async function uploadAudio(
+  projectId: string,
+  sceneId: string,
+  file: File,
+  onProgress?: (p: UploadProgress) => void
+): Promise<{ key: string }> {
+  const { uploadUrl, key } = await getSignedUrl(projectId, 'audio', file);
+  await putWithProgress(uploadUrl, file, onProgress);
+  const confirm = await fetch(`/api/admin/scenes/${sceneId}/audio`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key }),
+  });
+  if (!confirm.ok) {
+    const err = await confirm.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al confirmar el audio');
   }
   return confirm.json();
 }

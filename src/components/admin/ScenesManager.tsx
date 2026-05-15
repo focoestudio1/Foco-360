@@ -24,7 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/Button';
 import { showToast } from '@/components/ui/Toast';
-import { uploadScene, getImageDimensions } from '@/lib/uploads';
+import { uploadScene, uploadAudio, getImageDimensions } from '@/lib/uploads';
 import type { SceneWithUrl } from './ProjectEditor';
 
 export function ScenesManager({
@@ -291,25 +291,40 @@ export function ScenesManager({
       {activeSceneId && (
         <ActiveSceneDetails
           key={activeSceneId}
+          projectId={projectId}
           scene={scenes.find((s) => s.id === activeSceneId)!}
           onSave={(patch) => updateScene(activeSceneId, patch)}
+          onAudioChanged={(audio_url) =>
+            setScenes((prev) =>
+              prev.map((s) =>
+                s.id === activeSceneId ? { ...s, audio_url } : s
+              )
+            )
+          }
         />
       )}
     </section>
   );
 }
 
-// Editor de título + descripción de la escena activa.
+// Editor de título + descripción + audio de la escena activa.
 function ActiveSceneDetails({
+  projectId,
   scene,
   onSave,
+  onAudioChanged,
 }: {
+  projectId: string;
   scene: SceneWithUrl;
-  onSave: (patch: { title: string; description: string | null }) => Promise<boolean | void>;
+  onSave: (patch: { title?: string; description?: string | null }) => Promise<boolean | void>;
+  onAudioChanged: (audio_url: string | null) => void;
 }) {
   const [title, setTitle] = useState(scene.title);
   const [description, setDescription] = useState(scene.description ?? '');
   const [saving, setSaving] = useState(false);
+  const audioRef = useRef<HTMLInputElement>(null);
+  const [audioUploading, setAudioUploading] = useState(false);
+  const [audioPct, setAudioPct] = useState(0);
 
   // Detectamos si hay cambios sin guardar.
   const dirty =
@@ -375,6 +390,96 @@ function ActiveSceneDetails({
         />
         <p className="mt-1 text-[10px] text-text-subtle">
           Opcional. Si la escribes, aparece como overlay al entrar a esta escena.
+        </p>
+      </div>
+
+      {/* AUDIO de narración */}
+      <div>
+        <label className="mb-1 block text-[11px] uppercase tracking-wider text-text-muted">
+          Audio (opcional)
+        </label>
+        <input
+          ref={audioRef}
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (!f) return;
+            if (!f.type.startsWith('audio/')) {
+              showToast('error', 'Selecciona un archivo de audio');
+              return;
+            }
+            setAudioUploading(true);
+            setAudioPct(0);
+            try {
+              const { key } = await uploadAudio(projectId, scene.id, f, (p) =>
+                setAudioPct(p.pct)
+              );
+              onAudioChanged(key);
+              showToast('success', 'Audio subido');
+            } catch (err) {
+              showToast('error', (err as Error).message);
+            } finally {
+              setAudioUploading(false);
+              setAudioPct(0);
+            }
+          }}
+        />
+
+        {scene.audio_url ? (
+          <div className="flex items-center gap-2">
+            <span className="flex-1 truncate rounded-md border border-border bg-bg-elevated px-3 py-2 text-xs text-text-muted">
+              🎵 Audio configurado
+            </span>
+            <button
+              type="button"
+              onClick={() => audioRef.current?.click()}
+              disabled={audioUploading}
+              className="btn-secondary text-xs"
+            >
+              Cambiar
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm('¿Quitar el audio de esta escena?')) return;
+                const res = await fetch(`/api/admin/scenes/${scene.id}/audio`, {
+                  method: 'DELETE',
+                });
+                if (!res.ok) {
+                  showToast('error', 'Error al quitar audio');
+                  return;
+                }
+                onAudioChanged(null);
+                showToast('success', 'Audio quitado');
+              }}
+              className="text-xs text-text-muted hover:text-red-300"
+            >
+              Quitar
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => audioRef.current?.click()}
+            disabled={audioUploading}
+            className="btn-secondary w-full text-xs"
+          >
+            {audioUploading ? `Subiendo… ${audioPct}%` : '🎵 Subir audio'}
+          </button>
+        )}
+        {audioUploading && (
+          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-bg-hover">
+            <div
+              className="h-full bg-gold transition-all"
+              style={{ width: `${audioPct}%` }}
+            />
+          </div>
+        )}
+        <p className="mt-1 text-[10px] text-text-subtle">
+          Reproducción automática controlable por el visitante (MP3, M4A, OGG).
         </p>
       </div>
     </div>

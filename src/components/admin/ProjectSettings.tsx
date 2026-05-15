@@ -29,6 +29,8 @@ export function ProjectSettings({
     description: project.description ?? '',
     password: '',
     is_active: project.is_active,
+    whatsapp_phone: project.whatsapp_phone ?? '',
+    whatsapp_message: project.whatsapp_message ?? '',
   });
   // Modo de acceso: derivado del estado actual del proyecto.
   // El usuario lo cambia con un toggle explícito.
@@ -56,6 +58,8 @@ export function ProjectSettings({
       client_name: form.client_name,
       description: form.description,
       is_active: form.is_active,
+      whatsapp_phone: form.whatsapp_phone,
+      whatsapp_message: form.whatsapp_message,
     };
     // Si el usuario quiere contraseña y escribió una, la mandamos.
     if (wantPassword && form.password) {
@@ -384,6 +388,35 @@ export function ProjectSettings({
             ⚠ Al guardar, este tour quedará público (sin contraseña).
           </p>
         )}
+      </div>
+
+      {/* ---------- Card WHATSAPP ---------- */}
+      <div className="card space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          💬 Contacto WhatsApp (opcional)
+        </h2>
+        <p className="text-[11px] text-text-subtle">
+          Si lo configuras, aparece un botón flotante verde en el visor que
+          abre WhatsApp con un mensaje pre-cargado.
+        </p>
+        <Input
+          label="Número (con código de país, sin + ni espacios)"
+          value={form.whatsapp_phone}
+          onChange={(e) =>
+            setForm({ ...form, whatsapp_phone: e.target.value })
+          }
+          placeholder="Ej. 573177886527"
+          hint="Formato internacional. Ejemplos: 573177886527 (Colombia), 5215512345678 (México)."
+        />
+        <Textarea
+          label="Mensaje pre-cargado (opcional)"
+          value={form.whatsapp_message}
+          onChange={(e) =>
+            setForm({ ...form, whatsapp_message: e.target.value })
+          }
+          placeholder="Ej. Hola, vi el tour de la Óptica La Bodega y me gustaría más info."
+          rows={2}
+        />
       </div>
 
       {/* ---------- Botón GUARDAR (sticky-ish al final) ---------- */}

@@ -130,3 +130,9 @@ export function buildLogoKey(slug: string, filename: string): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `projects/${slug}/logo-${Date.now()}-${safe}`;
 }
+
+// Key para audio narración de escena.
+export function buildAudioKey(slug: string, filename: string): string {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `projects/${slug}/audio-${Date.now()}-${safe}`;
+}
