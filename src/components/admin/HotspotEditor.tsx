@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { showToast } from '@/components/ui/Toast';
+import { HotspotPlacementViewer } from './HotspotPlacementViewer';
 import type { Hotspot, SceneWithUrl } from './ProjectEditor';
 
 export function HotspotEditor({
@@ -39,8 +40,11 @@ export function HotspotEditor({
   );
 
   const [creating, setCreating] = useState(false);
+  // Hotspot recién creado — lo resaltamos brevemente en la lista.
+  const [justCreatedId, setJustCreatedId] = useState<string | null>(null);
 
-  async function createHotspot() {
+  // Crea un hotspot con pitch/yaw arbitrarios (usado por la vista previa).
+  async function createHotspotAt(pitch: number, yaw: number) {
     if (!activeSceneId) return;
     setCreating(true);
     const res = await fetch(
@@ -48,7 +52,7 @@ export function HotspotEditor({
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pitch: 0, yaw: 0, label: 'Ir a otra escena' }),
+        body: JSON.stringify({ pitch, yaw, label: 'Ir a otra escena' }),
       }
     );
     if (!res.ok) {
@@ -58,7 +62,15 @@ export function HotspotEditor({
     }
     const { hotspot } = await res.json();
     setHotspots((prev) => [...prev, hotspot]);
+    setJustCreatedId(hotspot.id);
+    setTimeout(() => setJustCreatedId(null), 2000);
+    showToast('success', 'Hotspot agregado — elige la escena destino abajo');
     setCreating(false);
+  }
+
+  // Crea un hotspot en el centro de la vista (fallback manual).
+  function createHotspot() {
+    return createHotspotAt(0, 0);
   }
 
   async function updateHotspot(id: string, patch: Partial<Hotspot>) {
@@ -107,16 +119,44 @@ export function HotspotEditor({
         )}
       </div>
 
+      {!activeScene ? null : (
+        <>
+          {/* Vista previa Pannellum con colocación por click */}
+          {activeScene.signed_url && (
+            <div className="mb-5">
+              <HotspotPlacementViewer
+                imageUrl={activeScene.signed_url}
+                hotspots={sceneHotspots}
+                onPlace={(pitch, yaw) => createHotspotAt(pitch, yaw)}
+                onHotspotClick={(h) => {
+                  setJustCreatedId(h.id);
+                  setTimeout(() => setJustCreatedId(null), 1500);
+                  // Hace scroll al item de la lista.
+                  const el = document.getElementById(`hotspot-${h.id}`);
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+              />
+            </div>
+          )}
+        </>
+      )}
+
       {!activeScene ? null : sceneHotspots.length === 0 ? (
         <div className="rounded-md border border-dashed border-border py-8 text-center text-xs text-text-subtle">
-          Aún no hay hotspots. Crea uno para enlazar con otra escena.
+          Aún no hay hotspots. Usa <strong>+ Agregar con click</strong> arriba o
+          el botón de la cabecera para crear uno.
         </div>
       ) : (
         <ul className="space-y-3">
           {sceneHotspots.map((h) => (
             <li
               key={h.id}
-              className="rounded-md border border-border bg-bg-elevated p-3"
+              id={`hotspot-${h.id}`}
+              className={`rounded-md border bg-bg-elevated p-3 transition-colors ${
+                justCreatedId === h.id
+                  ? 'border-gold shadow-[0_0_12px_rgba(212,175,55,0.3)]'
+                  : 'border-border'
+              }`}
             >
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end">
                 <div className="sm:col-span-4">
@@ -183,9 +223,9 @@ export function HotspotEditor({
       )}
 
       <p className="mt-4 text-[11px] text-text-subtle">
-        <strong>Tip:</strong> pitch va de -90 a 90 (vertical), yaw de -180 a 180
-        (horizontal). En el visor puedes navegar a una escena, abrir la consola
-        del navegador y leer las coordenadas actuales para anotarlas aquí.
+        <strong>Tip:</strong> usa <em>+ Agregar con click</em> en la vista
+        previa para colocar el hotspot visualmente. Los campos pitch (-90 a 90,
+        vertical) y yaw (-180 a 180, horizontal) sirven para ajuste fino.
       </p>
     </section>
   );

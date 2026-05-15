@@ -162,14 +162,8 @@ Abre http://localhost:3000
 2. Ingresa con el email/password que creaste en Supabase.
 3. En el dashboard: **+ Nuevo proyecto**.
 4. Después de crear, te lleva al editor: sube portada → sube escenas 360° → arrastra para ordenar.
-5. (Opcional) Selecciona una escena, agrega un hotspot, elige escena destino y ajusta `pitch/yaw`.
+5. (Opcional) Selecciona una escena, mira la **vista previa Pannellum** en la sección Hotspots, presiona **+ Agregar con click** y haz click sobre el panorama en el punto donde quieras el hotspot. Luego elige la escena destino en la lista.
 6. Copia el **Link público** y compártelo con tu cliente junto con la contraseña.
-
-> 💡 Tip: para obtener las coordenadas exactas de un hotspot, abre el visor del tour en la escena origen, navega hasta apuntar al punto donde quieres el hotspot, abre la consola del navegador y ejecuta:
-> ```js
-> document.querySelector('.pnlm-container').__viewer?.getYaw?.()
-> document.querySelector('.pnlm-container').__viewer?.getPitch?.()
-> ```
 
 ---
 
@@ -192,9 +186,9 @@ Abre http://localhost:3000
 
 - Soporte multi-admin con tabla `admins`.
 - Estadísticas más ricas (vistas por escena, tiempo promedio).
-- Vista previa del visor desde el admin para colocar hotspots con click visual.
 - Multi-resolución (tiles) para imágenes muy grandes.
 - Branding personalizable por proyecto (logo, color).
+- Subida directa firmada (PUT a R2 desde el navegador) para superar el límite de body de Vercel Hobby.
 
 ---
 
