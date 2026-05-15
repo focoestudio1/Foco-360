@@ -6,6 +6,7 @@
 // ============================================================
 
 import { useRef, useState } from 'react';
+import Image from 'next/image';
 import {
   DndContext,
   closestCenter,
@@ -313,11 +314,19 @@ function SortableScene({
         className="block aspect-video w-full overflow-hidden"
       >
         {scene.signed_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // next/image -> Vercel optimiza on-the-fly: descarga la
+          // panorámica original UNA vez en el servidor, genera una
+          // versión chiquita (~640px ancho) y la cachea en el edge.
+          // El navegador solo descarga ~30-80 KB en vez de 30 MB.
+          <Image
             src={scene.signed_url}
             alt={scene.title}
+            width={320}
+            height={180}
+            sizes="(max-width: 768px) 50vw, 200px"
             className="h-full w-full object-cover"
+            unoptimized={false}
+            loading="lazy"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-text-subtle">

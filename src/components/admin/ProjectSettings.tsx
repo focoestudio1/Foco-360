@@ -7,6 +7,7 @@
 // ============================================================
 
 import { useRef, useState } from 'react';
+import Image from 'next/image';
 import { Input, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { showToast } from '@/components/ui/Toast';
@@ -92,10 +93,12 @@ export function ProjectSettings({
         </h2>
         <div className="aspect-video w-full overflow-hidden rounded-md border border-border bg-bg-elevated">
           {project.cover_signed_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={project.cover_signed_url}
               alt="Portada"
+              width={640}
+              height={360}
+              sizes="(max-width: 768px) 100vw, 360px"
               className="h-full w-full object-cover"
             />
           ) : (

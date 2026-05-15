@@ -3,6 +3,7 @@
 // ============================================================
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
 import { formatDate } from '@/lib/utils';
 import { getSignedReadUrl } from '@/lib/r2';
@@ -63,10 +64,12 @@ export default async function ProjectsListPage() {
                 className="block aspect-video w-full overflow-hidden bg-bg-elevated"
               >
                 {p.cover_signed_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={p.cover_signed_url}
                     alt={p.name}
+                    width={640}
+                    height={360}
+                    sizes="(max-width: 768px) 100vw, 33vw"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
