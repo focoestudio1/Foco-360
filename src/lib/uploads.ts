@@ -24,41 +24,53 @@ export type UploadProgress = {
   pct: number;
 };
 
-// Umbral: si el archivo pesa más que esto, se comprime.
-// Por debajo del umbral se sube tal cual (las portadas chicas no necesitan).
-const COMPRESS_THRESHOLD_MB = 5;
+// Umbrales por tipo (en MB). Logos suelen ser chicos pero queremos
+// optimizar incluso PNG medianos. Escenas/portadas tienen umbral alto.
+const THRESHOLDS_MB: Record<UploadKind, number> = {
+  scene: 5,
+  cover: 5,
+  logo: 1,
+};
 
 // Comprime si hace falta. Mantiene calidad visual alta:
-// - Max 4096×2048 (4K, suficiente para visor 360 web)
-// - JPEG quality 90 (visualmente sin pérdida perceptible)
-// - Web Worker para no congelar la UI
+// - Escenas (panoramas): max 4096×2048, JPEG q=90.
+// - Portadas: max 1920 wide, JPEG q=90.
+// - Logos: max 800 wide, preserva PNG (transparencia) si era PNG.
 async function compressIfNeeded(
   file: File,
   kind: UploadKind,
   onProgress?: (pct: number) => void
 ): Promise<File> {
-  // Solo comprimimos imágenes y solo si superan el umbral.
   if (!file.type.startsWith('image/')) return file;
-  if (file.size < COMPRESS_THRESHOLD_MB * 1024 * 1024) return file;
+  // SVG: vector. Nunca tocar.
+  if (file.type === 'image/svg+xml') return file;
+  // Salta si ya pesa poco.
+  if (file.size < THRESHOLDS_MB[kind] * 1024 * 1024) return file;
 
-  // Para escenas (panoramas equirrectangulares) queremos máx 4096×2048.
-  // Para portadas basta con 1920 de ancho — son thumbnails.
-  // Para logos: 800px más que suficiente, peso minúsculo.
   const maxDim = kind === 'scene' ? 4096 : kind === 'logo' ? 800 : 1920;
-  const targetMB = kind === 'scene' ? 5 : kind === 'logo' ? 0.3 : 1.5;
+  const targetMB =
+    kind === 'scene' ? 5 : kind === 'logo' ? 0.5 : 1.5;
+
+  // Para escenas/portadas convertimos a JPEG (mejor compresión).
+  // Para logos preservamos el formato original — un PNG con
+  // transparencia debe seguir siendo PNG.
+  const isLogo = kind === 'logo';
 
   const options = {
     maxSizeMB: targetMB,
     maxWidthOrHeight: maxDim,
     initialQuality: 0.9,
     useWebWorker: true,
-    fileType: 'image/jpeg' as const,
-    onProgress, // recibe 0..100
+    ...(isLogo ? {} : { fileType: 'image/jpeg' as const }),
+    onProgress,
   };
 
   const result = await imageCompression(file, options);
-  // Aseguramos que el resultado es un File con nombre coherente.
   if (result instanceof File) return result;
+  // Logo: mantiene nombre/ext originales. Otro: renombra a .jpg.
+  if (isLogo) {
+    return new File([result], file.name, { type: file.type });
+  }
   const renamed = file.name.replace(/\.[^.]+$/, '.jpg');
   return new File([result], renamed, { type: 'image/jpeg' });
 }

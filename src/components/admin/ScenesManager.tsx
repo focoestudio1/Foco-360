@@ -318,10 +318,16 @@ function ActiveSceneDetails({
 
   async function handleSave() {
     setSaving(true);
-    await onSave({
-      title: title.trim() || 'Escena sin título',
-      description: description.trim() || null,
-    });
+    // Solo enviamos los campos que realmente cambiaron — así el PATCH
+    // no toca columnas innecesarias y es más resistente.
+    const patch: { title?: string; description?: string | null } = {};
+    const newTitle = title.trim() || 'Escena sin título';
+    const newDesc = description.trim() || null;
+    if (newTitle !== scene.title) patch.title = newTitle;
+    if (newDesc !== (scene.description ?? null)) patch.description = newDesc;
+    if (Object.keys(patch).length > 0) {
+      await onSave(patch);
+    }
     setSaving(false);
   }
 
