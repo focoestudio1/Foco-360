@@ -4,7 +4,7 @@
 // Editor completo de un proyecto: agrupa sub-componentes.
 // ============================================================
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProjectSettings } from './ProjectSettings';
 import { ScenesManager } from './ScenesManager';
@@ -61,6 +61,17 @@ export function ProjectEditor({
   const [activeSceneId, setActiveSceneId] = useState<string | null>(
     initialScenes[0]?.id ?? null
   );
+
+  // Sincroniza estado con props cuando llega data fresca del server
+  // (después de router.refresh tras upload, delete, reorder, etc.).
+  // Sin esto el estado quedaba "pegado" con los signed_url=null que
+  // fija la actualización optimista.
+  useEffect(() => {
+    setScenes(initialScenes);
+  }, [initialScenes]);
+  useEffect(() => {
+    setHotspots(initialHotspots);
+  }, [initialHotspots]);
 
   function refresh() {
     startTransition(() => router.refresh());
