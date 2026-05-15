@@ -108,6 +108,7 @@ export function ProjectEditor({
           hotspots={hotspots}
           setHotspots={setHotspots}
           activeSceneId={activeSceneId}
+          projectSlug={project.slug}
         />
       </div>
     </div>

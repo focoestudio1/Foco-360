@@ -18,11 +18,14 @@ export function HotspotEditor({
   hotspots,
   setHotspots,
   activeSceneId,
+  projectSlug,
 }: {
   scenes: SceneWithUrl[];
   hotspots: Hotspot[];
   setHotspots: React.Dispatch<React.SetStateAction<Hotspot[]>>;
   activeSceneId: string | null;
+  // Slug del proyecto para construir la URL de proxy R2.
+  projectSlug: string;
 }) {
   const activeScene = useMemo(
     () => scenes.find((s) => s.id === activeSceneId) ?? null,
@@ -122,10 +125,10 @@ export function HotspotEditor({
       {!activeScene ? null : (
         <>
           {/* Vista previa Pannellum con colocación por click */}
-          {activeScene.signed_url && (
+          {activeScene.image_url && (
             <div className="mb-5">
               <HotspotPlacementViewer
-                imageUrl={activeScene.signed_url}
+                imageUrl={`/api/tour/${projectSlug}/image?key=${encodeURIComponent(activeScene.image_url)}`}
                 hotspots={sceneHotspots}
                 onPlace={(pitch, yaw) => createHotspotAt(pitch, yaw)}
                 onHotspotClick={(h) => {

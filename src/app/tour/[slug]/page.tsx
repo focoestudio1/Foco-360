@@ -111,14 +111,13 @@ export default async function TourPage({
     );
   }
 
-  // Firma todas las URLs en paralelo.
-  const scenesSigned = await Promise.all(
-    scenes.map(async (s) => ({
-      id: s.id,
-      title: s.title,
-      url: await getSignedReadUrl(s.image_url),
-    }))
-  );
+  // URL pasada a Pannellum: pasa por nuestro proxy /api/tour/<slug>/image
+  // para evitar CORS de R2 y ocultar la firma del navegador.
+  const scenesSigned = scenes.map((s) => ({
+    id: s.id,
+    title: s.title,
+    url: `/api/tour/${params.slug}/image?key=${encodeURIComponent(s.image_url)}`,
+  }));
 
   return (
     <TourViewer
