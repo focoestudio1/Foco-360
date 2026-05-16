@@ -139,32 +139,32 @@ export function PannellumViewer({
             const isInfo = h.kind === 'info';
             const ringColor = isInfo ? '#3b82f6' : brandColor;
             const iconSvg = isInfo
-              ? `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              ? `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="12" y1="16" x2="12" y2="12"/>
                   <line x1="12" y1="8" x2="12.01" y2="8"/>
                 </svg>`
-              : `<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              : `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M9 11.5V6a2 2 0 0 1 4 0v4"/>
                   <path d="M13 10V4a2 2 0 0 1 4 0v6"/>
                   <path d="M17 10v-3a2 2 0 0 1 4 0v10a7 7 0 0 1-7 7H10c-1.4 0-2.78-.6-3.71-1.6L3.5 18.5a2 2 0 0 1 2.7-2.96L9 18"/>
                 </svg>`;
             hotspotDiv.innerHTML = `
               <div class="foco-hotspot-inner" style="
-                width: 70px;
-                height: 70px;
-                margin-left: -35px;
-                margin-top: -35px;
+                width: 48px;
+                height: 48px;
+                margin-left: -24px;
+                margin-top: -24px;
                 border-radius: 50%;
-                background: #fff;
-                border: 3px solid ${ringColor};
-                box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+                background: rgba(255,255,255,0.95);
+                border: 2px solid ${ringColor};
+                box-shadow: 0 2px 8px rgba(0,0,0,0.4);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
                 position: relative;
-                animation: foco-hotspot-bob 2.4s ease-in-out infinite;
+                animation: foco-hotspot-bob 3.6s ease-in-out infinite;
               ">
                 ${iconSvg}
               </div>
@@ -398,10 +398,10 @@ export function PannellumViewer({
           }
         }
 
-        /* Animacion de bob (sube/baja) para la mano del hotspot */
+        /* Animacion de bob sutil (sube/baja 3px, lento) */
         @keyframes foco-hotspot-bob {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
+          50% { transform: translateY(-3px); }
         }
         .pnlm-hotspot.foco-hotspot .foco-hotspot-inner:hover {
           background: #d4af37 !important;

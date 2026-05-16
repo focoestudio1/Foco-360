@@ -42,6 +42,12 @@ export default async function AdminAuthedLayout({
               >
                 Nuevo
               </Link>
+              <Link
+                href="/admin/settings"
+                className="rounded px-3 py-1.5 text-text-muted transition-colors hover:bg-bg-hover hover:text-text"
+              >
+                Configuración
+              </Link>
             </nav>
           </div>
 
