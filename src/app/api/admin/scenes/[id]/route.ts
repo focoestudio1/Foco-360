@@ -24,6 +24,14 @@ export async function PATCH(
   if ('description' in body) {
     update.description = body.description?.toString().trim() || null;
   }
+  if ('floorplan_x' in body) {
+    const n = Number(body.floorplan_x);
+    update.floorplan_x = Number.isFinite(n) ? n : null;
+  }
+  if ('floorplan_y' in body) {
+    const n = Number(body.floorplan_y);
+    update.floorplan_y = Number.isFinite(n) ? n : null;
+  }
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'Sin cambios' }, { status: 400 });

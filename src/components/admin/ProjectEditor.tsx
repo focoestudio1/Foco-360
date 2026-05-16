@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { ProjectSettings } from './ProjectSettings';
 import { ScenesManager } from './ScenesManager';
 import { HotspotEditor } from './HotspotEditor';
+import { FloorplanPinEditor } from './FloorplanPinEditor';
 import { showToast } from '@/components/ui/Toast';
 
 export type SceneWithUrl = {
@@ -22,6 +23,9 @@ export type SceneWithUrl = {
   // Audio narración opcional.
   audio_url: string | null;
   audio_signed_url: string | null;
+  // Posición sobre el plano 2D (fracciones 0..1).
+  floorplan_x: number | null;
+  floorplan_y: number | null;
 };
 
 export type Hotspot = {
@@ -50,6 +54,9 @@ export type Project = {
   // Logo personalizado del proyecto (anula el global si está seteado).
   logo_url: string | null;
   logo_signed_url: string | null;
+  // Plano 2D del proyecto + posiciones de escenas en él.
+  floorplan_url: string | null;
+  floorplan_signed_url: string | null;
   // true si el proyecto tiene contraseña configurada (no expone el hash).
   has_password: boolean;
   // WhatsApp opcional para botón flotante.
@@ -137,6 +144,33 @@ export function ProjectEditor({
           activeSceneId={activeSceneId}
           projectSlug={project.slug}
         />
+
+        {/* Editor del plano 2D (solo si el proyecto tiene plano cargado) */}
+        {project.floorplan_signed_url && (
+          <FloorplanPinEditor
+            floorplanUrl={project.floorplan_signed_url}
+            scenes={scenes}
+            activeSceneId={activeSceneId}
+            setActiveSceneId={setActiveSceneId}
+            onPlacePin={async (sceneId, x, y) => {
+              // PATCH escena con nueva posición.
+              const res = await fetch(`/api/admin/scenes/${sceneId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ floorplan_x: x, floorplan_y: y }),
+              });
+              if (!res.ok) {
+                showToast('error', 'No se pudo guardar la posición');
+                return;
+              }
+              setScenes((prev) =>
+                prev.map((s) =>
+                  s.id === sceneId ? { ...s, floorplan_x: x, floorplan_y: y } : s
+                )
+              );
+            }}
+          />
+        )}
       </div>
     </div>
   );

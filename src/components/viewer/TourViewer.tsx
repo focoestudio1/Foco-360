@@ -27,6 +27,9 @@ export type ViewerScene = {
   description?: string | null;
   // URL firmada de audio narración (no pasa por proxy: no requiere CORS).
   audioUrl?: string | null;
+  // Posición en el plano 2D (0..1) — null si no se ha colocado el pin.
+  floorplanX?: number | null;
+  floorplanY?: number | null;
 };
 export type ViewerHotspot = {
   id: string;
@@ -52,6 +55,7 @@ export function TourViewer({
   whatsappMessage,
   brandColor,
   isEmbed = false,
+  floorplanUrl,
 }: {
   slug: string;
   projectName: string;
@@ -70,6 +74,8 @@ export function TourViewer({
   brandColor?: string | null;
   // Modo embed (dentro de iframe en sitio externo).
   isEmbed?: boolean;
+  // URL firmada del plano 2D si el proyecto tiene uno.
+  floorplanUrl?: string | null;
 }) {
   // Color final usado en hotspots, acentos.
   const color = brandColor || '#d4af37';
@@ -221,6 +227,17 @@ export function TourViewer({
         </div>
       </div>
 
+      {/* Mini-mapa del plano 2D (esquina inferior izquierda) */}
+      {floorplanUrl && (
+        <FloorplanMinimap
+          src={floorplanUrl}
+          scenes={scenes}
+          activeId={activeId}
+          color={color}
+          onPick={goToScene}
+        />
+      )}
+
       {/* Modal de hotspot informativo */}
       {infoModal && (
         <div
@@ -289,6 +306,75 @@ export function TourViewer({
               </button>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== Mini-mapa del plano 2D =====
+// Pastilla flotante en la esquina inferior izquierda. Muestra el
+// plano con un pin por escena. Click en pin → goToScene.
+// Se puede colapsar/expandir.
+function FloorplanMinimap({
+  src,
+  scenes,
+  activeId,
+  color,
+  onPick,
+}: {
+  src: string;
+  scenes: ViewerScene[];
+  activeId: string;
+  color: string;
+  onPick: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="absolute left-4 bottom-4 z-20 max-w-[220px] overflow-hidden rounded-md border border-white/15 bg-black/55 backdrop-blur-md">
+      <div className="flex items-center justify-between px-2.5 py-1.5">
+        <span className="text-[10px] uppercase tracking-wider text-text-muted">
+          🗺 Plano
+        </span>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-text-muted hover:text-text"
+          title={expanded ? 'Colapsar' : 'Expandir'}
+        >
+          {expanded ? '▾' : '▴'}
+        </button>
+      </div>
+      {expanded && (
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt="Plano" className="block w-full" draggable={false} />
+          {scenes.map((s, idx) => {
+            if (s.floorplanX == null || s.floorplanY == null) return null;
+            const isActive = s.id === activeId;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onPick(s.id)}
+                className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-2 text-[9px] font-bold transition-transform hover:scale-110"
+                style={{
+                  left: `${s.floorplanX * 100}%`,
+                  top: `${s.floorplanY * 100}%`,
+                  background: isActive ? color : 'rgba(0,0,0,0.7)',
+                  color: isActive ? '#000' : '#fff',
+                  borderColor: isActive ? '#fff' : 'rgba(255,255,255,0.8)',
+                  boxShadow: isActive
+                    ? `0 0 10px ${color}`
+                    : '0 0 4px rgba(0,0,0,0.5)',
+                }}
+                title={s.title}
+              >
+                {idx + 1}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

@@ -136,3 +136,9 @@ export function buildAudioKey(slug: string, filename: string): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `projects/${slug}/audio-${Date.now()}-${safe}`;
 }
+
+// Key para plano 2D del proyecto.
+export function buildFloorplanKey(slug: string, filename: string): string {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `projects/${slug}/floorplan-${Date.now()}-${safe}`;
+}

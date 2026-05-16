@@ -11,7 +11,11 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { showToast } from '@/components/ui/Toast';
 import { CopyLinkButton } from './CopyLinkButton';
-import { uploadCover as uploadCoverDirect, uploadLogo as uploadLogoDirect } from '@/lib/uploads';
+import {
+  uploadCover as uploadCoverDirect,
+  uploadLogo as uploadLogoDirect,
+  uploadFloorplan as uploadFloorplanDirect,
+} from '@/lib/uploads';
 import type { Project } from './ProjectEditor';
 
 export function ProjectSettings({
@@ -45,9 +49,13 @@ export function ProjectSettings({
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoPct, setLogoPct] = useState(0);
   const [logoPhase, setLogoPhase] = useState<'compressing' | 'uploading'>('compressing');
+  const [floorUploading, setFloorUploading] = useState(false);
+  const [floorPct, setFloorPct] = useState(0);
+  const [floorPhase, setFloorPhase] = useState<'compressing' | 'uploading'>('compressing');
 
   const coverRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLInputElement>(null);
+  const floorRef = useRef<HTMLInputElement>(null);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
   const tourLink = `${siteUrl}/tour/${project.slug}`;
@@ -132,6 +140,42 @@ export function ProjectSettings({
       setLogoUploading(false);
       setLogoPct(0);
     }
+  }
+
+  async function uploadFloorplanFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Selecciona una imagen');
+      return;
+    }
+    setFloorUploading(true);
+    setFloorPct(0);
+    setFloorPhase('compressing');
+    try {
+      await uploadFloorplanDirect(project.id, file, (p) => {
+        setFloorPct(p.pct);
+        setFloorPhase(p.phase);
+      });
+      showToast('success', 'Plano actualizado');
+      onUpdated();
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
+      setFloorUploading(false);
+      setFloorPct(0);
+    }
+  }
+
+  async function removeFloorplan() {
+    if (!confirm('¿Quitar el plano 2D del proyecto?')) return;
+    const res = await fetch(`/api/admin/projects/${project.id}/floorplan`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      showToast('error', 'Error al quitar plano');
+      return;
+    }
+    showToast('success', 'Plano quitado');
+    onUpdated();
   }
 
   async function removeLogo() {
@@ -389,6 +433,72 @@ export function ProjectSettings({
           <p className="rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-[11px] text-yellow-200">
             ⚠ Al guardar, este tour quedará público (sin contraseña).
           </p>
+        )}
+      </div>
+
+      {/* ---------- Card PLANO 2D ---------- */}
+      <div className="card space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          🗺 Plano 2D (opcional)
+        </h2>
+        <p className="text-[11px] text-text-subtle">
+          Si subes un plano, aparece un mini-mapa flotante en el visor
+          con pines de cada escena. Después coloca los pines en la
+          sección "Posicionar escenas en plano".
+        </p>
+        {project.floorplan_signed_url ? (
+          <div className="aspect-video w-full overflow-hidden rounded-md border border-border bg-bg-elevated">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={project.floorplan_signed_url}
+              alt="Plano 2D"
+              className="h-full w-full object-contain"
+            />
+          </div>
+        ) : (
+          <div className="flex h-32 items-center justify-center rounded-md border border-dashed border-border text-[11px] text-text-subtle">
+            Sin plano
+          </div>
+        )}
+        <input
+          ref={floorRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadFloorplanFile(f);
+            e.target.value = '';
+          }}
+        />
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => floorRef.current?.click()}
+            loading={floorUploading}
+            className="flex-1"
+          >
+            {floorUploading
+              ? `${floorPhase === 'compressing' ? 'Optimizando' : 'Subiendo'}… ${floorPct}%`
+              : project.floorplan_url
+              ? 'Cambiar plano'
+              : 'Subir plano'}
+          </Button>
+          {project.floorplan_url && (
+            <Button variant="ghost" onClick={removeFloorplan}>
+              Quitar
+            </Button>
+          )}
+        </div>
+        {floorUploading && (
+          <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
+            <div
+              className={`h-full transition-all ${
+                floorPhase === 'compressing' ? 'bg-blue-400' : 'bg-gold'
+              }`}
+              style={{ width: `${floorPct}%` }}
+            />
+          </div>
         )}
       </div>
 

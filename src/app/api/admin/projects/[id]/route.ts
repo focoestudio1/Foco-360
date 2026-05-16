@@ -55,6 +55,9 @@ export async function GET(
   const logo_signed_url = project.logo_url
     ? await getSignedReadUrl(project.logo_url).catch(() => null)
     : null;
+  const floorplan_signed_url = project.floorplan_url
+    ? await getSignedReadUrl(project.floorplan_url).catch(() => null)
+    : null;
 
   const scenesSigned = await Promise.all(
     (scenes ?? []).map(async (s) => ({
@@ -76,6 +79,7 @@ export async function GET(
       has_password,
       cover_signed_url,
       logo_signed_url,
+      floorplan_signed_url,
     },
     scenes: scenesSigned,
     hotspots,

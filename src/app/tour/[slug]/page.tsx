@@ -46,7 +46,7 @@ export default async function TourPage({
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color')
+    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color, floorplan_url')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -145,12 +145,17 @@ export default async function TourPage({
       audioUrl: s.audio_url
         ? await getSignedReadUrl(s.audio_url).catch(() => null)
         : null,
+      floorplanX: s.floorplan_x != null ? Number(s.floorplan_x) : null,
+      floorplanY: s.floorplan_y != null ? Number(s.floorplan_y) : null,
     }))
   );
 
-  // Logo del proyecto (si tiene uno propio).
+  // Logo y plano del proyecto (si tiene).
   const logoUrl = project.logo_url
     ? await getSignedReadUrl(project.logo_url).catch(() => null)
+    : null;
+  const floorplanUrl = project.floorplan_url
+    ? await getSignedReadUrl(project.floorplan_url).catch(() => null)
     : null;
 
   return (
@@ -165,6 +170,7 @@ export default async function TourPage({
       whatsappMessage={project.whatsapp_message}
       brandColor={project.brand_color}
       isEmbed={searchParams.embed === '1'}
+      floorplanUrl={floorplanUrl}
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,
