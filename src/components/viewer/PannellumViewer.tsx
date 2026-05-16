@@ -135,44 +135,43 @@ export function PannellumViewer({
             hotspotDiv.classList.add('foco-hotspot');
             hotspotDiv.innerHTML = `
               <div class="foco-hotspot-inner" style="
-                width: 64px;
-                height: 64px;
-                margin-left: -32px;
-                margin-top: -32px;
+                width: 70px;
+                height: 70px;
+                margin-left: -35px;
+                margin-top: -35px;
                 border-radius: 50%;
                 background: #fff;
                 border: 3px solid #d4af37;
-                box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+                box-shadow: 0 4px 14px rgba(0,0,0,0.55);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
                 position: relative;
+                animation: foco-hotspot-bob 2.4s ease-in-out infinite;
               ">
-                <div style="
-                  width: 16px;
-                  height: 16px;
-                  border-top: 4px solid #1a1a1a;
-                  border-right: 4px solid #1a1a1a;
-                  transform: rotate(45deg);
-                  margin-left: -4px;
-                  pointer-events: none;
-                "></div>
+                <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 11.5V6a2 2 0 0 1 4 0v4"/>
+                  <path d="M13 10V4a2 2 0 0 1 4 0v6"/>
+                  <path d="M17 10v-3a2 2 0 0 1 4 0v10a7 7 0 0 1-7 7H10c-1.4 0-2.78-.6-3.71-1.6L3.5 18.5a2 2 0 0 1 2.7-2.96L9 18"/>
+                </svg>
               </div>
               ${
                 h.label
                   ? `<div class="foco-hotspot-label" style="
                       position: absolute;
-                      top: 38px;
+                      top: 42px;
                       left: 50%;
                       transform: translateX(-50%);
                       background: rgba(0,0,0,0.85);
                       color: #fff;
-                      padding: 4px 8px;
-                      border-radius: 4px;
+                      padding: 4px 10px;
+                      border-radius: 6px;
                       font-size: 11px;
                       white-space: nowrap;
                       pointer-events: none;
+                      font-weight: 500;
+                      letter-spacing: 0.3px;
                     ">${escapeHtml(h.label)}</div>`
                   : ''
               }
@@ -380,6 +379,20 @@ export function PannellumViewer({
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
               0 0 0 0 rgba(212, 175, 55, 0);
           }
+        }
+
+        /* Animacion de bob (sube/baja) para la mano del hotspot */
+        @keyframes foco-hotspot-bob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        .pnlm-hotspot.foco-hotspot .foco-hotspot-inner:hover {
+          background: #d4af37 !important;
+          transform: scale(1.12);
+          animation-play-state: paused;
+        }
+        .pnlm-hotspot.foco-hotspot .foco-hotspot-inner:hover svg {
+          stroke: #fff;
         }
 
         /* Tooltip default de Pannellum: lo restilizamos */
