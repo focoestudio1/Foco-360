@@ -10,6 +10,7 @@ import { ProjectSettings } from './ProjectSettings';
 import { ScenesManager } from './ScenesManager';
 import { HotspotEditor } from './HotspotEditor';
 import { FloorplanPinEditor } from './FloorplanPinEditor';
+import { SceneStats } from './SceneStats';
 import { showToast } from '@/components/ui/Toast';
 
 export type SceneWithUrl = {
@@ -144,6 +145,9 @@ export function ProjectEditor({
           activeSceneId={activeSceneId}
           projectSlug={project.slug}
         />
+
+        {/* Estadísticas por escena */}
+        <SceneStats projectId={project.id} />
 
         {/* Editor del plano 2D (solo si el proyecto tiene plano cargado) */}
         {project.floorplan_signed_url && (

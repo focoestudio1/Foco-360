@@ -44,7 +44,7 @@ export type ViewerHotspot = {
 };
 
 export function TourViewer({
-  slug: _slug,
+  slug,
   projectName,
   scenes,
   hotspots,
@@ -97,6 +97,40 @@ export function TourViewer({
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
+
+  // Tracking de vistas por escena para stats. Cuando cambia la escena
+  // activa (o al desmontar), envía la duración de la escena anterior.
+  // No tracking en modo preview (admin).
+  const sceneEnterTimeRef = useRef<{ id: string; t: number } | null>(null);
+  useEffect(() => {
+    if (isPreview || !activeId) return;
+    // Si había una escena previa, mandar su duración.
+    const prev = sceneEnterTimeRef.current;
+    if (prev && prev.id !== activeId) {
+      const duration = Date.now() - prev.t;
+      // Fire-and-forget; no bloqueamos UI.
+      fetch(`/api/tour/${slug}/scene-view`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scene_id: prev.id, duration_ms: duration }),
+        keepalive: true,
+      }).catch(() => {});
+    }
+    sceneEnterTimeRef.current = { id: activeId, t: Date.now() };
+
+    // Al desmontar (cerrar pestaña, salir del tour) registra la actual.
+    return () => {
+      const cur = sceneEnterTimeRef.current;
+      if (!cur || isPreview) return;
+      const duration = Date.now() - cur.t;
+      fetch(`/api/tour/${slug}/scene-view`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scene_id: cur.id, duration_ms: duration }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+  }, [activeId, isPreview, slug]);
 
   function toggleFullscreen() {
     if (document.fullscreenElement) {
