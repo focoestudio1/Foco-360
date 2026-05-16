@@ -135,6 +135,20 @@ export function PannellumViewer({
           // garantiza visibilidad sin depender del CSS class.
           createTooltipFunc: (hotspotDiv: HTMLElement) => {
             hotspotDiv.classList.add('foco-hotspot');
+            // Info hotspots usan color azul + icono 'i' en vez de mano.
+            const isInfo = h.kind === 'info';
+            const ringColor = isInfo ? '#3b82f6' : brandColor;
+            const iconSvg = isInfo
+              ? `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>`
+              : `<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 11.5V6a2 2 0 0 1 4 0v4"/>
+                  <path d="M13 10V4a2 2 0 0 1 4 0v6"/>
+                  <path d="M17 10v-3a2 2 0 0 1 4 0v10a7 7 0 0 1-7 7H10c-1.4 0-2.78-.6-3.71-1.6L3.5 18.5a2 2 0 0 1 2.7-2.96L9 18"/>
+                </svg>`;
             hotspotDiv.innerHTML = `
               <div class="foco-hotspot-inner" style="
                 width: 70px;
@@ -143,7 +157,7 @@ export function PannellumViewer({
                 margin-top: -35px;
                 border-radius: 50%;
                 background: #fff;
-                border: 3px solid ${brandColor};
+                border: 3px solid ${ringColor};
                 box-shadow: 0 4px 14px rgba(0,0,0,0.55);
                 display: flex;
                 align-items: center;
@@ -152,11 +166,7 @@ export function PannellumViewer({
                 position: relative;
                 animation: foco-hotspot-bob 2.4s ease-in-out infinite;
               ">
-                <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 11.5V6a2 2 0 0 1 4 0v4"/>
-                  <path d="M13 10V4a2 2 0 0 1 4 0v6"/>
-                  <path d="M17 10v-3a2 2 0 0 1 4 0v10a7 7 0 0 1-7 7H10c-1.4 0-2.78-.6-3.71-1.6L3.5 18.5a2 2 0 0 1 2.7-2.96L9 18"/>
-                </svg>
+                ${iconSvg}
               </div>
               ${
                 h.label
@@ -180,7 +190,12 @@ export function PannellumViewer({
             `;
           },
           clickHandlerFunc: () => {
-            // Efecto zoom-in cinematográfico antes de cambiar de escena.
+            // Info hotspot: solo abre modal, sin zoom ni cambio de escena.
+            if (h.kind === 'info') {
+              onHotspotClick(h);
+              return;
+            }
+            // Navegación: zoom-in cinematográfico + cambio de escena.
             try {
               viewerRef.current?.lookAt?.(h.pitch, h.yaw, 30, 600);
             } catch {}

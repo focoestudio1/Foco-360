@@ -172,6 +172,11 @@ export default async function TourPage({
         pitch: Number(h.pitch),
         yaw: Number(h.yaw),
         label: h.label,
+        kind: (h.kind === 'info' ? 'info' : 'navigation') as
+          | 'info'
+          | 'navigation',
+        info_text: h.info_text ?? null,
+        info_image_url: h.info_image_url ?? null,
       }))}
     />
   );

@@ -31,6 +31,10 @@ export type Hotspot = {
   pitch: number;
   yaw: number;
   label: string | null;
+  // 'navigation' (mano que cambia escena) o 'info' (popup texto+foto).
+  kind: 'navigation' | 'info';
+  info_text: string | null;
+  info_image_url: string | null;
 };
 
 export type Project = {

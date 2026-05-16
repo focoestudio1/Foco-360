@@ -35,6 +35,9 @@ export type ViewerHotspot = {
   pitch: number;
   yaw: number;
   label: string | null;
+  kind: 'navigation' | 'info';
+  info_text: string | null;
+  info_image_url: string | null;
 };
 
 export function TourViewer({
@@ -72,6 +75,8 @@ export function TourViewer({
   const color = brandColor || '#d4af37';
   const [activeId, setActiveId] = useState<string>(scenes[0]?.id);
   const [fullscreen, setFullscreen] = useState(false);
+  // Hotspot tipo 'info' actualmente abierto en modal (null = cerrado).
+  const [infoModal, setInfoModal] = useState<ViewerHotspot | null>(null);
 
   const activeScene = scenes.find((s) => s.id === activeId);
   const activeHotspots = hotspots.filter((h) => h.scene_id === activeId);
@@ -118,7 +123,11 @@ export function TourViewer({
             hotspots={activeHotspots}
             brandColor={color}
             onHotspotClick={(h) => {
-              if (h.target_scene_id) goToScene(h.target_scene_id);
+              if (h.kind === 'info') {
+                setInfoModal(h);
+              } else if (h.target_scene_id) {
+                goToScene(h.target_scene_id);
+              }
             }}
           />
         )}
@@ -211,6 +220,46 @@ export function TourViewer({
           </button>
         </div>
       </div>
+
+      {/* Modal de hotspot informativo */}
+      {infoModal && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm"
+          onClick={() => setInfoModal(null)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-lg border border-border bg-bg-card p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setInfoModal(null)}
+              className="absolute right-3 top-3 text-text-muted hover:text-text"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+            {infoModal.label && (
+              <h3 className="mb-3 text-base font-semibold tracking-wide text-text">
+                {infoModal.label}
+              </h3>
+            )}
+            {infoModal.info_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={infoModal.info_image_url}
+                alt={infoModal.label ?? ''}
+                className="mb-3 w-full rounded-md"
+              />
+            )}
+            {infoModal.info_text && (
+              <p className="whitespace-pre-line text-sm leading-relaxed text-text-muted">
+                {infoModal.info_text}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Galería inferior de miniaturas (oculta en modo embed) */}
       {!isEmbed && scenes.length > 1 && (

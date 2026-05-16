@@ -161,6 +161,42 @@ export function HotspotEditor({
                   : 'border-border'
               }`}
             >
+              {/* Tipo de hotspot: navegación o información */}
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateHotspot(h.id, { kind: 'navigation' })}
+                  className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                    (h.kind ?? 'navigation') === 'navigation'
+                      ? 'border-gold bg-gold/10 text-gold'
+                      : 'border-border bg-bg-elevated text-text-muted hover:border-text-subtle'
+                  }`}
+                >
+                  <div className="text-xs uppercase tracking-wider">
+                    🤚 Navegación
+                  </div>
+                  <div className="mt-0.5 text-[10px] opacity-80">
+                    Click → cambia a otra escena.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateHotspot(h.id, { kind: 'info' })}
+                  className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                    h.kind === 'info'
+                      ? 'border-blue-400 bg-blue-400/10 text-blue-300'
+                      : 'border-border bg-bg-elevated text-text-muted hover:border-text-subtle'
+                  }`}
+                >
+                  <div className="text-xs uppercase tracking-wider">
+                    ℹ Información
+                  </div>
+                  <div className="mt-0.5 text-[10px] opacity-80">
+                    Click → muestra texto/foto.
+                  </div>
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end">
                 <div className="sm:col-span-4">
                   <Input
@@ -169,25 +205,28 @@ export function HotspotEditor({
                     onBlur={(e) => updateHotspot(h.id, { label: e.target.value })}
                   />
                 </div>
-                <div className="sm:col-span-4">
-                  <label className="label">Escena destino</label>
-                  <select
-                    defaultValue={h.target_scene_id ?? ''}
-                    onChange={(e) =>
-                      updateHotspot(h.id, {
-                        target_scene_id: e.target.value || null,
-                      })
-                    }
-                    className="input-field"
-                  >
-                    <option value="">— Sin destino —</option>
-                    {otherScenes.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Solo para navegación: escena destino */}
+                {(h.kind ?? 'navigation') === 'navigation' && (
+                  <div className="sm:col-span-4">
+                    <label className="label">Escena destino</label>
+                    <select
+                      defaultValue={h.target_scene_id ?? ''}
+                      onChange={(e) =>
+                        updateHotspot(h.id, {
+                          target_scene_id: e.target.value || null,
+                        })
+                      }
+                      className="input-field"
+                    >
+                      <option value="">— Sin destino —</option>
+                      {otherScenes.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="sm:col-span-2">
                   <Input
                     label="Pitch"
@@ -211,6 +250,23 @@ export function HotspotEditor({
                   />
                 </div>
               </div>
+
+              {/* Solo para 'info': texto del popup */}
+              {h.kind === 'info' && (
+                <div className="mt-3">
+                  <label className="label">Texto del popup</label>
+                  <textarea
+                    defaultValue={h.info_text ?? ''}
+                    onBlur={(e) =>
+                      updateHotspot(h.id, { info_text: e.target.value })
+                    }
+                    rows={3}
+                    className="input-field resize-none"
+                    placeholder="Ej. Cocina con encimera de granito, electrodomésticos incluidos."
+                  />
+                </div>
+              )}
+
               <div className="mt-2 flex justify-end">
                 <button
                   type="button"
