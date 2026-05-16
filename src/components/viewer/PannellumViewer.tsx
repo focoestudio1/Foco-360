@@ -202,15 +202,19 @@ export function PannellumViewer({
           display: none !important;
         }
 
-        /* ====== Hotspot dorado animado (estilo R360) ====== */
+        /* ====== Hotspot flotante con cambio de color ====== */
+        /* Usamos un wrapper interno (::before) animado y un ::after
+           con la flecha. Animamos transform en ::before sin tocar
+           el transform del wrapper Pannellum (que lo usa para
+           posicionar el hotspot en 2D según pitch/yaw). */
+
         .pnlm-hotspot.foco-hotspot {
-          width: 64px !important;
-          height: 64px !important;
-          margin-left: -32px !important;
-          margin-top: -32px !important;
-          border-radius: 50% !important;
-          background: rgba(255, 255, 255, 0.92) !important;
-          border: 3px solid #d4af37 !important;
+          width: 70px !important;
+          height: 70px !important;
+          margin-left: -35px !important;
+          margin-top: -35px !important;
+          background: transparent !important;
+          border: none !important;
           cursor: pointer !important;
           display: flex !important;
           align-items: center !important;
@@ -218,43 +222,108 @@ export function PannellumViewer({
           visibility: visible !important;
           opacity: 1 !important;
           pointer-events: auto !important;
-          box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.6),
-            0 4px 14px rgba(0, 0, 0, 0.45);
-          animation: foco-hotspot-pulse 1.6s ease-out infinite;
-          transition: transform 0.25s ease, background 0.25s ease;
+          /* Sin transform aquí — pannellum lo usa para posicionar */
         }
-        .pnlm-hotspot.foco-hotspot:hover {
-          transform: scale(1.18);
-          background: #d4af37 !important;
-          animation-play-state: paused;
-        }
-        .pnlm-hotspot.foco-hotspot:hover::before {
-          border-color: #fff;
-        }
-        /* Flecha hacia la derecha (estilo "ir a") */
+
+        /* Círculo principal con cambio de color y movimiento flotante */
         .pnlm-hotspot.foco-hotspot::before {
           content: '';
-          width: 16px;
-          height: 16px;
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: #fff;
+          border: 3px solid #d4af37;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
+            0 0 0 0 rgba(212, 175, 55, 0.7);
+          animation:
+            foco-hotspot-float 2.4s ease-in-out infinite,
+            foco-hotspot-color 2s ease-in-out infinite,
+            foco-hotspot-pulse 2s ease-out infinite;
+        }
+
+        /* Flecha "→" centrada arriba del fondo */
+        .pnlm-hotspot.foco-hotspot::after {
+          content: '';
+          position: relative;
+          width: 18px;
+          height: 18px;
           border-top: 4px solid #1a1a1a;
           border-right: 4px solid #1a1a1a;
           transform: rotate(45deg);
-          margin-left: -4px;
+          margin-left: -6px;
           pointer-events: none;
-          transition: border-color 0.25s ease;
+          animation: foco-hotspot-arrow-color 2s ease-in-out infinite,
+            foco-hotspot-float 2.4s ease-in-out infinite;
         }
+
+        .pnlm-hotspot.foco-hotspot:hover::before {
+          animation-play-state: paused;
+          background: #d4af37 !important;
+          transform: scale(1.15);
+        }
+        .pnlm-hotspot.foco-hotspot:hover::after {
+          animation-play-state: paused;
+          border-color: #fff;
+          transform: rotate(45deg) scale(1.15);
+        }
+
+        /* Movimiento flotante arriba/abajo */
+        @keyframes foco-hotspot-float {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-8px);
+          }
+        }
+        /* La flecha tiene su propia transform rotate, así que se la
+           combinamos con el translateY mediante un keyframe distinto */
+        .pnlm-hotspot.foco-hotspot::after {
+          animation:
+            foco-hotspot-arrow-color 2s ease-in-out infinite,
+            foco-hotspot-arrow-float 2.4s ease-in-out infinite;
+        }
+        @keyframes foco-hotspot-arrow-float {
+          0%, 100% {
+            transform: rotate(45deg) translateY(0);
+          }
+          50% {
+            transform: rotate(45deg) translateY(-8px);
+          }
+        }
+        /* Cambio de color blanco → dorado → blanco */
+        @keyframes foco-hotspot-color {
+          0%, 100% {
+            background: #fff;
+            border-color: #d4af37;
+          }
+          50% {
+            background: #d4af37;
+            border-color: #fff;
+          }
+        }
+        /* Flecha negra → blanca para contrastar con el fondo dorado */
+        @keyframes foco-hotspot-arrow-color {
+          0%, 100% {
+            border-color: #1a1a1a;
+          }
+          50% {
+            border-color: #fff;
+          }
+        }
+        /* Halo expansivo */
         @keyframes foco-hotspot-pulse {
           0% {
-            box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7),
-              0 4px 14px rgba(0, 0, 0, 0.45);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
+              0 0 0 0 rgba(212, 175, 55, 0.7);
           }
           70% {
-            box-shadow: 0 0 0 28px rgba(212, 175, 55, 0),
-              0 4px 14px rgba(0, 0, 0, 0.45);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
+              0 0 0 30px rgba(212, 175, 55, 0);
           }
           100% {
-            box-shadow: 0 0 0 0 rgba(212, 175, 55, 0),
-              0 4px 14px rgba(0, 0, 0, 0.45);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
+              0 0 0 0 rgba(212, 175, 55, 0);
           }
         }
 

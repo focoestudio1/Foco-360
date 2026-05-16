@@ -114,22 +114,23 @@ export function TourViewer({
           />
         )}
 
-        {/* Overlay logo: si el proyecto tiene logo propio, lo usa */}
-        <div className="pointer-events-none absolute left-4 top-4 z-20">
+        {/* Overlay logo: ubicado bajo la barra lateral derecha, más chico.
+            Si el proyecto tiene logo propio lo usa, sino el global. */}
+        <div className="pointer-events-none absolute right-4 bottom-4 z-20">
           {logoUrl ? (
-            <span className="inline-flex items-center rounded-md bg-white/95 px-2 py-1 shadow-sm">
+            <span className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={logoUrl}
                 alt={projectName}
-                className="h-6 w-auto"
+                className="h-5 w-auto"
                 draggable={false}
               />
             </span>
           ) : (
             <Logo
               asLink={false}
-              className="rounded-md bg-black/40 px-3 py-2 backdrop-blur"
+              className="rounded-md bg-black/50 px-2 py-1 backdrop-blur text-[10px]"
             />
           )}
         </div>
