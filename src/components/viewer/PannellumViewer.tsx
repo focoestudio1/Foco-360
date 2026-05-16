@@ -120,7 +120,17 @@ export function PannellumViewer({
           type: 'info',
           cssClass: 'foco-hotspot',
           text: h.label || 'Ir',
-          clickHandlerFunc: () => onHotspotClick(h),
+          clickHandlerFunc: () => {
+            // Efecto zoom-in cinematográfico antes de cambiar de escena.
+            // - El usuario ve la cámara acercarse al hotspot durante 500ms.
+            // - Después aparece el overlay de carga (cubre el corte).
+            // - A los 650ms se monta la siguiente escena.
+            try {
+              viewerRef.current?.lookAt?.(h.pitch, h.yaw, 30, 600);
+            } catch {}
+            setTimeout(() => setState('loading'), 500);
+            setTimeout(() => onHotspotClick(h), 650);
+          },
         })),
         crossOrigin: 'anonymous',
       });
@@ -192,56 +202,59 @@ export function PannellumViewer({
           display: none !important;
         }
 
-        /* ====== Hotspot dorado animado ====== */
+        /* ====== Hotspot dorado animado (estilo R360) ====== */
         .pnlm-hotspot.foco-hotspot {
-          width: 56px;
-          height: 56px;
-          margin-left: -28px;
-          margin-top: -28px;
-          border-radius: 50%;
-          background: radial-gradient(
-            circle,
-            rgba(212, 175, 55, 0.95) 0%,
-            rgba(212, 175, 55, 0.7) 60%,
-            rgba(212, 175, 55, 0) 75%
-          );
-          border: 2px solid #d4af37;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7);
-          animation: foco-hotspot-pulse 1.8s ease-out infinite;
-          transition: transform 0.2s ease;
+          width: 64px !important;
+          height: 64px !important;
+          margin-left: -32px !important;
+          margin-top: -32px !important;
+          border-radius: 50% !important;
+          background: rgba(255, 255, 255, 0.92) !important;
+          border: 3px solid #d4af37 !important;
+          cursor: pointer !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+          box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.6),
+            0 4px 14px rgba(0, 0, 0, 0.45);
+          animation: foco-hotspot-pulse 1.6s ease-out infinite;
+          transition: transform 0.25s ease, background 0.25s ease;
         }
         .pnlm-hotspot.foco-hotspot:hover {
-          transform: scale(1.15);
+          transform: scale(1.18);
+          background: #d4af37 !important;
           animation-play-state: paused;
         }
-        /* Flecha hacia adentro (chevron) usando pseudo-elemento */
+        .pnlm-hotspot.foco-hotspot:hover::before {
+          border-color: #fff;
+        }
+        /* Flecha hacia la derecha (estilo "ir a") */
         .pnlm-hotspot.foco-hotspot::before {
           content: '';
-          width: 14px;
-          height: 14px;
-          border-top: 3px solid #fff;
-          border-right: 3px solid #fff;
+          width: 16px;
+          height: 16px;
+          border-top: 4px solid #1a1a1a;
+          border-right: 4px solid #1a1a1a;
           transform: rotate(45deg);
-          /* Ajuste óptico: la flecha sube un poco para verse centrada */
-          margin-top: -2px;
-          filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+          margin-left: -4px;
+          pointer-events: none;
+          transition: border-color 0.25s ease;
         }
         @keyframes foco-hotspot-pulse {
           0% {
             box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7),
-              0 0 18px 4px rgba(212, 175, 55, 0.4);
+              0 4px 14px rgba(0, 0, 0, 0.45);
           }
           70% {
-            box-shadow: 0 0 0 22px rgba(212, 175, 55, 0),
-              0 0 18px 4px rgba(212, 175, 55, 0.4);
+            box-shadow: 0 0 0 28px rgba(212, 175, 55, 0),
+              0 4px 14px rgba(0, 0, 0, 0.45);
           }
           100% {
             box-shadow: 0 0 0 0 rgba(212, 175, 55, 0),
-              0 0 18px 4px rgba(212, 175, 55, 0.4);
+              0 4px 14px rgba(0, 0, 0, 0.45);
           }
         }
 
