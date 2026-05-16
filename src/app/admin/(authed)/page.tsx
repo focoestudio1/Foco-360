@@ -64,7 +64,7 @@ export default async function DashboardPage() {
               <li key={p.id} className="flex items-center justify-between py-3">
                 <div>
                   <Link
-                    href={`/admin/projects/${p.id}`}
+                    href={`/admin/projects/${p.slug}`}
                     className="font-medium text-text hover:text-gold"
                   >
                     {p.name}

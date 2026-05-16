@@ -1,5 +1,6 @@
 // ============================================================
 // Editor del proyecto: detalles, portada, escenas y hotspots.
+// URL: /admin/projects/<slug>  (slug es legible, no UUID).
 // ============================================================
 
 import Link from 'next/link';
@@ -14,20 +15,20 @@ export const dynamic = 'force-dynamic';
 export default async function ProjectEditPage({
   params,
 }: {
-  params: { id: string };
+  params: { slug: string };
 }) {
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
     .select('*')
-    .eq('id', params.id)
-    .single();
+    .eq('slug', params.slug)
+    .maybeSingle();
   if (!project) notFound();
 
   const { data: scenes } = await supabase
     .from('scenes')
     .select('*')
-    .eq('project_id', params.id)
+    .eq('project_id', project.id)
     .order('order_index', { ascending: true });
 
   const sceneIds = (scenes ?? []).map((s) => s.id);
@@ -43,15 +44,25 @@ export default async function ProjectEditPage({
   const cover_signed_url = project.cover_url
     ? await getSignedReadUrl(project.cover_url).catch(() => null)
     : null;
+  const logo_signed_url = project.logo_url
+    ? await getSignedReadUrl(project.logo_url).catch(() => null)
+    : null;
+  const floorplan_signed_url = project.floorplan_url
+    ? await getSignedReadUrl(project.floorplan_url).catch(() => null)
+    : null;
 
   const scenesSigned = await Promise.all(
     (scenes ?? []).map(async (s) => ({
       ...s,
       signed_url: await getSignedReadUrl(s.image_url).catch(() => null),
+      audio_signed_url: s.audio_url
+        ? await getSignedReadUrl(s.audio_url).catch(() => null)
+        : null,
     }))
   );
 
-  const { password_hash: _ph, ...safeProject } = project as any;
+  const { password_hash, ...safeProject } = project as any;
+  const has_password = !!password_hash;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -74,7 +85,13 @@ export default async function ProjectEditPage({
       </div>
 
       <ProjectEditor
-        project={{ ...safeProject, cover_signed_url }}
+        project={{
+          ...safeProject,
+          has_password,
+          cover_signed_url,
+          logo_signed_url,
+          floorplan_signed_url,
+        }}
         initialScenes={scenesSigned}
         initialHotspots={hotspots}
       />

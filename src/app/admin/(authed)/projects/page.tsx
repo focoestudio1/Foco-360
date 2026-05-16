@@ -60,7 +60,7 @@ export default async function ProjectsListPage() {
               className="group overflow-hidden rounded-lg border border-border bg-bg-card transition-all hover:border-border-light"
             >
               <Link
-                href={`/admin/projects/${p.id}`}
+                href={`/admin/projects/${p.slug}`}
                 className="block aspect-video w-full overflow-hidden bg-bg-elevated"
               >
                 {p.cover_signed_url ? (
@@ -82,7 +82,7 @@ export default async function ProjectsListPage() {
               <div className="space-y-2 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <Link
-                    href={`/admin/projects/${p.id}`}
+                    href={`/admin/projects/${p.slug}`}
                     className="font-medium text-text hover:text-gold"
                   >
                     {p.name}

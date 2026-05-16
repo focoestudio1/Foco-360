@@ -49,7 +49,7 @@ export function NewProjectForm() {
         return;
       }
       showToast('success', 'Proyecto creado');
-      router.push(`/admin/projects/${data.project.id}`);
+      router.push(`/admin/projects/${data.project.slug}`);
     } catch {
       showToast('error', 'Error de red');
       setLoading(false);
