@@ -27,12 +27,45 @@ export async function generateMetadata({
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from('projects')
-    .select('name, is_active')
+    .select('name, client_name, description, is_active, cover_url')
     .eq('slug', params.slug)
     .maybeSingle();
+
+  if (!data) {
+    return { title: 'Tour 360°', robots: { index: false, follow: false } };
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+  const tourUrl = `${siteUrl}/tour/${params.slug}`;
+  // Descripción usada por WhatsApp/FB/Twitter al previsualizar.
+  const description =
+    data.description || data.client_name || 'Tour virtual 360°';
+  // og:image apunta a nuestra ruta pública de portada (no expone R2).
+  const imageUrl =
+    data.cover_url && siteUrl
+      ? `${siteUrl}/api/og/${params.slug}`
+      : undefined;
+
   return {
-    title: data?.name ?? 'Tour 360°',
+    title: data.name,
+    description,
     robots: { index: false, follow: false },
+    openGraph: {
+      title: data.name,
+      description,
+      url: tourUrl,
+      siteName: process.env.NEXT_PUBLIC_BRAND_NAME || 'FOCO',
+      type: 'website',
+      images: imageUrl
+        ? [{ url: imageUrl, width: 1200, height: 630, alt: data.name }]
+        : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: data.name,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+    },
   };
 }
 
