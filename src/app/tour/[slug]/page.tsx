@@ -89,11 +89,26 @@ export default async function TourPage({
   }
 
   // ---- Carga escenas y hotspots ----
-  const { data: scenes } = await supabase
+  const { data: scenes, error: scenesError } = await supabase
     .from('scenes')
     .select('*')
     .eq('project_id', project.id)
     .order('order_index', { ascending: true });
+
+  // Log a Vercel server logs para diagnóstico.
+  if (scenesError) {
+    console.error('[/tour/:slug] scenes query failed', {
+      slug: params.slug,
+      project_id: project.id,
+      error: scenesError,
+    });
+  } else {
+    console.log('[/tour/:slug] scenes loaded', {
+      slug: params.slug,
+      project_id: project.id,
+      count: scenes?.length ?? 0,
+    });
+  }
 
   const sceneIds = (scenes ?? []).map((s) => s.id);
   let hotspots: any[] = [];
@@ -107,7 +122,14 @@ export default async function TourPage({
 
   if (!scenes || scenes.length === 0) {
     return (
-      <EmptyTour name={project.name} />
+      <EmptyTour
+        name={project.name}
+        debug={{
+          projectId: project.id,
+          scenesError: scenesError?.message ?? null,
+          slugParam: params.slug,
+        }}
+      />
     );
   }
 
@@ -168,7 +190,13 @@ function UnavailableTour() {
   );
 }
 
-function EmptyTour({ name }: { name: string }) {
+function EmptyTour({
+  name,
+  debug,
+}: {
+  name: string;
+  debug?: { projectId: string; scenesError: string | null; slugParam: string };
+}) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
       <Logo asLink={false} className="mb-8 justify-center" />
@@ -176,6 +204,16 @@ function EmptyTour({ name }: { name: string }) {
       <p className="text-sm text-text-muted">
         Este tour aún no tiene escenas. Vuelve más tarde.
       </p>
+      {/* Bloque de diagnóstico — visible para admin durante pruebas.
+          Si esto sale en producción, copiar y mandar. */}
+      {debug && (
+        <pre className="mt-8 max-w-xl whitespace-pre-wrap rounded-md border border-border bg-bg-elevated p-3 text-left text-[10px] text-text-subtle">
+{`DEBUG
+slug:        ${debug.slugParam}
+projectId:   ${debug.projectId}
+scenesError: ${debug.scenesError ?? '(sin error - simplemente devolvió 0 escenas)'}`}
+        </pre>
+      )}
     </main>
   );
 }
