@@ -74,10 +74,12 @@ export function PannellumViewer({
   imageUrl,
   hotspots,
   onHotspotClick,
+  brandColor = '#d4af37',
 }: {
   imageUrl: string;
   hotspots: ViewerHotspot[];
   onHotspotClick: (h: ViewerHotspot) => void;
+  brandColor?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -141,7 +143,7 @@ export function PannellumViewer({
                 margin-top: -35px;
                 border-radius: 50%;
                 background: #fff;
-                border: 3px solid #d4af37;
+                border: 3px solid ${brandColor};
                 box-shadow: 0 4px 14px rgba(0,0,0,0.55);
                 display: flex;
                 align-items: center;

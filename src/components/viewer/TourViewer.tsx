@@ -47,6 +47,8 @@ export function TourViewer({
   logoUrl,
   whatsappPhone,
   whatsappMessage,
+  brandColor,
+  isEmbed = false,
 }: {
   slug: string;
   projectName: string;
@@ -61,7 +63,13 @@ export function TourViewer({
   // Botón flotante de WhatsApp (opcional).
   whatsappPhone?: string | null;
   whatsappMessage?: string | null;
+  // Color de marca del proyecto (default dorado FOCO).
+  brandColor?: string | null;
+  // Modo embed (dentro de iframe en sitio externo).
+  isEmbed?: boolean;
 }) {
+  // Color final usado en hotspots, acentos.
+  const color = brandColor || '#d4af37';
   const [activeId, setActiveId] = useState<string>(scenes[0]?.id);
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -108,6 +116,7 @@ export function TourViewer({
             key={activeScene.id}
             imageUrl={activeScene.url}
             hotspots={activeHotspots}
+            brandColor={color}
             onHotspotClick={(h) => {
               if (h.target_scene_id) goToScene(h.target_scene_id);
             }}
@@ -203,8 +212,8 @@ export function TourViewer({
         </div>
       </div>
 
-      {/* Galería inferior de miniaturas */}
-      {scenes.length > 1 && (
+      {/* Galería inferior de miniaturas (oculta en modo embed) */}
+      {!isEmbed && scenes.length > 1 && (
         <div className="z-10 border-t border-white/10 bg-black/80 backdrop-blur">
           <div className="flex gap-2 overflow-x-auto px-4 py-3">
             {scenes.map((s) => (

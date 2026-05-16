@@ -116,6 +116,15 @@ export async function PATCH(
     update.whatsapp_message =
       body.whatsapp_message?.toString().trim() || null;
   }
+  // Color de marca: solo aceptamos hex #RRGGBB (6 dígitos).
+  if ('brand_color' in body) {
+    const v = body.brand_color?.toString().trim() ?? '';
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+      update.brand_color = v.toLowerCase();
+    } else if (v === '') {
+      update.brand_color = null; // vuelve al default
+    }
+  }
 
   // Contraseña:
   //   - body.password = "xxxxxxxx"  → setea/cambia contraseña

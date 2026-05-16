@@ -31,6 +31,7 @@ export function ProjectSettings({
     is_active: project.is_active,
     whatsapp_phone: project.whatsapp_phone ?? '',
     whatsapp_message: project.whatsapp_message ?? '',
+    brand_color: project.brand_color ?? '#d4af37',
   });
   // Modo de acceso: derivado del estado actual del proyecto.
   // El usuario lo cambia con un toggle explícito.
@@ -60,6 +61,7 @@ export function ProjectSettings({
       is_active: form.is_active,
       whatsapp_phone: form.whatsapp_phone,
       whatsapp_message: form.whatsapp_message,
+      brand_color: form.brand_color,
     };
     // Si el usuario quiere contraseña y escribió una, la mandamos.
     if (wantPassword && form.password) {
@@ -388,6 +390,54 @@ export function ProjectSettings({
             ⚠ Al guardar, este tour quedará público (sin contraseña).
           </p>
         )}
+      </div>
+
+      {/* ---------- Card COLOR DE MARCA ---------- */}
+      <div className="card space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          🎨 Color de marca
+        </h2>
+        <p className="text-[11px] text-text-subtle">
+          Color de acento del visor (bordes de hotspot, botones).
+          Default = dorado FOCO. Hex válido: <code>#d4af37</code>.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={form.brand_color}
+            onChange={(e) => setForm({ ...form, brand_color: e.target.value })}
+            className="h-10 w-16 cursor-pointer rounded border border-border bg-bg-elevated"
+          />
+          <Input
+            value={form.brand_color}
+            onChange={(e) => setForm({ ...form, brand_color: e.target.value })}
+            placeholder="#d4af37"
+            className="flex-1"
+          />
+          <button
+            type="button"
+            onClick={() => setForm({ ...form, brand_color: '#d4af37' })}
+            className="text-xs text-text-muted hover:text-text"
+            title="Restaurar dorado FOCO"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* ---------- Card EMBED ---------- */}
+      <div className="card space-y-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          🔗 Código embebido
+        </h2>
+        <p className="text-[11px] text-text-subtle">
+          Para que el cliente pegue el tour en su propia web (con
+          <code> iframe</code>).
+        </p>
+        <code className="block break-all rounded bg-bg-elevated px-3 py-2 text-[10px] text-text-muted">{`<iframe src="${tourLink}?embed=1" width="100%" height="600" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>`}</code>
+        <CopyLinkButton
+          url={`<iframe src="${tourLink}?embed=1" width="100%" height="600" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>`}
+        />
       </div>
 
       {/* ---------- Card WHATSAPP ---------- */}

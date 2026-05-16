@@ -51,6 +51,8 @@ export type Project = {
   // WhatsApp opcional para botón flotante.
   whatsapp_phone: string | null;
   whatsapp_message: string | null;
+  // Color de marca opcional — anula el dorado global.
+  brand_color: string | null;
   last_viewed_at: string | null;
   created_at: string;
 };

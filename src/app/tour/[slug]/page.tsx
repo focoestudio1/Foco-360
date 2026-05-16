@@ -41,12 +41,12 @@ export default async function TourPage({
   searchParams,
 }: {
   params: { slug: string };
-  searchParams: { preview?: string };
+  searchParams: { preview?: string; embed?: string };
 }) {
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message')
+    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -163,6 +163,8 @@ export default async function TourPage({
       logoUrl={logoUrl}
       whatsappPhone={project.whatsapp_phone}
       whatsappMessage={project.whatsapp_message}
+      brandColor={project.brand_color}
+      isEmbed={searchParams.embed === '1'}
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,
