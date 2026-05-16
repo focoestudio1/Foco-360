@@ -29,6 +29,16 @@ declare global {
   }
 }
 
+// Escapa HTML para insertar texto del usuario sin riesgo de XSS.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const PANNELLUM_CSS =
   'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css';
 const PANNELLUM_JS =
@@ -116,15 +126,60 @@ export function PannellumViewer({
           id: h.id,
           pitch: h.pitch,
           yaw: h.yaw,
-          // Usamos cssClass propio para estilo personalizado (flecha animada).
           type: 'info',
           cssClass: 'foco-hotspot',
-          text: h.label || 'Ir',
+          // createTooltipFunc: Pannellum llama a esta función pasando el
+          // div del hotspot. Inyectamos HTML propio con estilos inline —
+          // garantiza visibilidad sin depender del CSS class.
+          createTooltipFunc: (hotspotDiv: HTMLElement) => {
+            hotspotDiv.classList.add('foco-hotspot');
+            hotspotDiv.innerHTML = `
+              <div class="foco-hotspot-inner" style="
+                width: 64px;
+                height: 64px;
+                margin-left: -32px;
+                margin-top: -32px;
+                border-radius: 50%;
+                background: #fff;
+                border: 3px solid #d4af37;
+                box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                position: relative;
+              ">
+                <div style="
+                  width: 16px;
+                  height: 16px;
+                  border-top: 4px solid #1a1a1a;
+                  border-right: 4px solid #1a1a1a;
+                  transform: rotate(45deg);
+                  margin-left: -4px;
+                  pointer-events: none;
+                "></div>
+              </div>
+              ${
+                h.label
+                  ? `<div class="foco-hotspot-label" style="
+                      position: absolute;
+                      top: 38px;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      background: rgba(0,0,0,0.85);
+                      color: #fff;
+                      padding: 4px 8px;
+                      border-radius: 4px;
+                      font-size: 11px;
+                      white-space: nowrap;
+                      pointer-events: none;
+                    ">${escapeHtml(h.label)}</div>`
+                  : ''
+              }
+            `;
+          },
           clickHandlerFunc: () => {
             // Efecto zoom-in cinematográfico antes de cambiar de escena.
-            // - El usuario ve la cámara acercarse al hotspot durante 500ms.
-            // - Después aparece el overlay de carga (cubre el corte).
-            // - A los 650ms se monta la siguiente escena.
             try {
               viewerRef.current?.lookAt?.(h.pitch, h.yaw, 30, 600);
             } catch {}
