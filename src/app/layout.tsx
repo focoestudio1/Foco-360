@@ -10,8 +10,8 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL || 'https://foco-360.vercel.app'
   ),
   title: {
-    default: 'Foco 360° — Tours Virtuales Inmobiliarios',
-    template: '%s · Foco 360°',
+    default: 'FOCO 360°',
+    template: '%s · FOCO 360°',
   },
   description:
     'Plataforma profesional de tours virtuales 360° para propiedades inmobiliarias.',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   // Open Graph default — usado cuando se comparte la home o paginas
   // que no tienen og:image propio.
   openGraph: {
-    title: 'Foco 360° — Tours Virtuales Inmobiliarios',
+    title: 'FOCO 360° — Tours Virtuales',
     description:
       'Plataforma profesional de tours virtuales 360° para propiedades inmobiliarias.',
     images: [{ url: '/logo.png', width: 1200, height: 1200, alt: 'FOCO 360°' }],

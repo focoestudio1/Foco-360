@@ -10,7 +10,7 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'FOCO 360° — Tours Virtuales',
+    name: 'FOCO 360°',
     short_name: 'FOCO 360°',
     description:
       'Plataforma profesional de tours virtuales 360° para propiedades inmobiliarias.',
