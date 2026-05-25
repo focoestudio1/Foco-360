@@ -47,6 +47,8 @@ export type ViewerHotspot = {
   // Título de la escena destino — calculado en TourViewer y pasado
   // al PannellumViewer para mostrar en el tooltip del hotspot.
   target_title?: string | null;
+  // URL del panorama de la escena destino (para preview tipo portal en hover).
+  target_image_url?: string | null;
 };
 
 export function TourViewer({
@@ -114,13 +116,17 @@ export function TourViewer({
   // el tooltip muestre "Sala de espera" en vez de la etiqueta genérica.
   const activeHotspots = hotspots
     .filter((h) => h.scene_id === activeId)
-    .map((h) => ({
-      ...h,
-      target_title:
-        h.kind === 'navigation' && h.target_scene_id
-          ? scenes.find((s) => s.id === h.target_scene_id)?.title ?? null
-          : null,
-    }));
+    .map((h) => {
+      if (h.kind !== 'navigation' || !h.target_scene_id) {
+        return { ...h, target_title: null, target_image_url: null };
+      }
+      const target = scenes.find((s) => s.id === h.target_scene_id);
+      return {
+        ...h,
+        target_title: target?.title ?? null,
+        target_image_url: target?.url ?? null,
+      };
+    });
 
   const goToScene = useCallback((sceneId: string) => {
     setActiveId(sceneId);

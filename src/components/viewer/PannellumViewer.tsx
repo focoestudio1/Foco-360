@@ -166,19 +166,32 @@ export function PannellumViewer({
                   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                 </svg>`
-              : `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 11.5V6a2 2 0 0 1 4 0v4"/>
-                  <path d="M13 10V4a2 2 0 0 1 4 0v6"/>
-                  <path d="M17 10v-3a2 2 0 0 1 4 0v10a7 7 0 0 1-7 7H10c-1.4 0-2.78-.6-3.71-1.6L3.5 18.5a2 2 0 0 1 2.7-2.96L9 18"/>
-                </svg>`;
+              : (() => {
+                  // Si hay preview portal, el icono va blanco sobre el fondo oscuro.
+                  const stroke = h.kind === 'navigation' && h.target_image_url
+                    ? '#fff'
+                    : '#1a1a1a';
+                  return `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 11.5V6a2 2 0 0 1 4 0v4"/>
+                    <path d="M13 10V4a2 2 0 0 1 4 0v6"/>
+                    <path d="M17 10v-3a2 2 0 0 1 4 0v10a7 7 0 0 1-7 7H10c-1.4 0-2.78-.6-3.71-1.6L3.5 18.5a2 2 0 0 1 2.7-2.96L9 18"/>
+                  </svg>`;
+                })();
+            // Preview "portal" para hotspots de navegación: muestra la
+            // escena destino como fondo del círculo, revelado al hover.
+            const hasPreview = h.kind === 'navigation' && h.target_image_url;
+            const previewBg = hasPreview
+              ? `background-image: url('${h.target_image_url}'); background-size: cover; background-position: center;`
+              : 'background: rgba(255,255,255,0.95);';
+
             hotspotDiv.innerHTML = `
-              <div class="foco-hotspot-inner" style="
+              <div class="foco-hotspot-inner ${hasPreview ? 'foco-hotspot-portal' : ''}" style="
                 width: 48px;
                 height: 48px;
                 margin-left: -24px;
                 margin-top: -24px;
                 border-radius: 50%;
-                background: rgba(255,255,255,0.95);
+                ${previewBg}
                 border: 2px solid ${ringColor};
                 box-shadow: 0 2px 8px rgba(0,0,0,0.4);
                 display: flex;
@@ -187,8 +200,20 @@ export function PannellumViewer({
                 cursor: pointer;
                 position: relative;
                 animation: foco-hotspot-bob 3.6s ease-in-out infinite;
+                overflow: hidden;
+                transition: width 0.3s ease, height 0.3s ease, margin 0.3s ease;
               ">
-                ${iconSvg}
+                <div class="foco-hotspot-icon" style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  width: 100%;
+                  height: 100%;
+                  ${hasPreview ? 'background: rgba(0,0,0,0.35); backdrop-filter: blur(1px);' : ''}
+                  transition: opacity 0.3s ease;
+                ">
+                  ${iconSvg}
+                </div>
               </div>
               ${
                 // Prioridad: nombre de la escena destino > etiqueta manual.
@@ -481,12 +506,27 @@ export function PannellumViewer({
           cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'><circle cx='18' cy='18' r='12' fill='none' stroke='%23ffffff' stroke-width='2'/><circle cx='18' cy='18' r='2.5' fill='%23ffffff'/><line x1='18' y1='2' x2='18' y2='8' stroke='%23ffffff' stroke-width='2'/><line x1='18' y1='28' x2='18' y2='34' stroke='%23ffffff' stroke-width='2'/><line x1='2' y1='18' x2='8' y2='18' stroke='%23ffffff' stroke-width='2'/><line x1='28' y1='18' x2='34' y2='18' stroke='%23ffffff' stroke-width='2'/></svg>") 18 18, pointer !important;
         }
         .pnlm-hotspot.foco-hotspot .foco-hotspot-inner:hover {
-          background: #d4af37 !important;
-          transform: scale(1.12);
           animation-play-state: paused;
         }
-        .pnlm-hotspot.foco-hotspot .foco-hotspot-inner:hover svg {
+        /* Hotspot sin preview: hover dorado solido (info y url) */
+        .pnlm-hotspot.foco-hotspot .foco-hotspot-inner:not(.foco-hotspot-portal):hover {
+          background: #d4af37 !important;
+          transform: scale(1.12);
+        }
+        .pnlm-hotspot.foco-hotspot .foco-hotspot-inner:not(.foco-hotspot-portal):hover svg {
           stroke: #fff;
+        }
+        /* Hotspot con preview (navegacion): expande mostrando portal */
+        .pnlm-hotspot.foco-hotspot .foco-hotspot-portal:hover {
+          width: 130px !important;
+          height: 130px !important;
+          margin-left: -65px !important;
+          margin-top: -65px !important;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
+            0 0 0 4px rgba(255, 255, 255, 0.15) !important;
+        }
+        .pnlm-hotspot.foco-hotspot .foco-hotspot-portal:hover .foco-hotspot-icon {
+          opacity: 0;
         }
 
         /* Tooltip default de Pannellum: lo restilizamos */
