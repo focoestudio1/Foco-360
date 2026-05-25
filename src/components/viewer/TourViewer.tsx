@@ -338,7 +338,7 @@ export function TourViewer({
           <button
             type="button"
             onClick={async () => {
-              const shareUrl = `${window.location.origin}/tour/${_slug}`;
+              const shareUrl = `${window.location.origin}/tour/${slug}`;
               if (navigator.share) {
                 try {
                   await navigator.share({
