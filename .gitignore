@@ -1,8 +1,12 @@
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+
+# cotizaciones build artifacts (npm install local solo para generar docx)
+cotizaciones/package*.json
 
 # testing
 /coverage

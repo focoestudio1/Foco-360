@@ -169,10 +169,18 @@ export function PannellumViewer({
                 ${iconSvg}
               </div>
               ${
-                h.label
-                  ? `<div class="foco-hotspot-label" style="
+                // Prioridad: nombre de la escena destino > etiqueta manual.
+                // Si es info hotspot, usa la etiqueta del usuario.
+                (() => {
+                  const text =
+                    h.kind === 'navigation' && h.target_title
+                      ? h.target_title
+                      : h.label;
+                  if (!text) return '';
+                  const arrow = h.kind === 'navigation' ? ' →' : '';
+                  return `<div class="foco-hotspot-label" style="
                       position: absolute;
-                      top: 42px;
+                      top: 30px;
                       left: 50%;
                       transform: translateX(-50%);
                       background: rgba(0,0,0,0.85);
@@ -184,8 +192,9 @@ export function PannellumViewer({
                       pointer-events: none;
                       font-weight: 500;
                       letter-spacing: 0.3px;
-                    ">${escapeHtml(h.label)}</div>`
-                  : ''
+                      border: 1px solid ${ringColor}40;
+                    ">${escapeHtml(text)}${arrow}</div>`;
+                })()
               }
             `;
           },
@@ -257,7 +266,7 @@ export function PannellumViewer({
 
       <div
         ref={containerRef}
-        className="absolute inset-0 h-full w-full bg-black"
+        className="foco-pano-cursor absolute inset-0 h-full w-full bg-black"
         aria-label="Visor 360°"
       />
 
@@ -402,6 +411,22 @@ export function PannellumViewer({
         @keyframes foco-hotspot-bob {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-3px); }
+        }
+
+        /* Cursor estilo videojuego sobre el panorama */
+        /* Cursor 'grab' cuando puedes arrastrar la vista */
+        .foco-pano-cursor,
+        .foco-pano-cursor canvas {
+          cursor: grab !important;
+        }
+        .foco-pano-cursor:active,
+        .foco-pano-cursor canvas:active {
+          cursor: grabbing !important;
+        }
+        /* Cuando el cursor esta sobre un hotspot, mostramos crosshair custom */
+        .pnlm-hotspot.foco-hotspot {
+          /* SVG crosshair tipo target/aim de videojuego */
+          cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'><circle cx='18' cy='18' r='12' fill='none' stroke='%23ffffff' stroke-width='2'/><circle cx='18' cy='18' r='2.5' fill='%23ffffff'/><line x1='18' y1='2' x2='18' y2='8' stroke='%23ffffff' stroke-width='2'/><line x1='18' y1='28' x2='18' y2='34' stroke='%23ffffff' stroke-width='2'/><line x1='2' y1='18' x2='8' y2='18' stroke='%23ffffff' stroke-width='2'/><line x1='28' y1='18' x2='34' y2='18' stroke='%23ffffff' stroke-width='2'/></svg>") 18 18, pointer !important;
         }
         .pnlm-hotspot.foco-hotspot .foco-hotspot-inner:hover {
           background: #d4af37 !important;
