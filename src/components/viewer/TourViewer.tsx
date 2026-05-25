@@ -10,6 +10,8 @@
 import dynamic from 'next/dynamic';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Logo } from '@/components/ui/Logo';
+import { showToast } from '@/components/ui/Toast';
+import type { PannellumHandle } from './PannellumViewer';
 
 const Pannellum = dynamic(() => import('./PannellumViewer').then((m) => m.PannellumViewer), {
   ssr: false,
@@ -38,9 +40,10 @@ export type ViewerHotspot = {
   pitch: number;
   yaw: number;
   label: string | null;
-  kind: 'navigation' | 'info';
+  kind: 'navigation' | 'info' | 'url';
   info_text: string | null;
   info_image_url: string | null;
+  external_url: string | null;
   // Título de la escena destino — calculado en TourViewer y pasado
   // al PannellumViewer para mostrar en el tooltip del hotspot.
   target_title?: string | null;
@@ -91,6 +94,19 @@ export function TourViewer({
   useEffect(() => {
     const t = setTimeout(() => setShowSplash(false), 2500);
     return () => clearTimeout(t);
+  }, []);
+
+  // Handle del visor Pannellum (para Home, VR, etc).
+  const pnRef = useRef<PannellumHandle | null>(null);
+  const [vrActive, setVrActive] = useState(false);
+  // Yaw actual del visor — polled para mostrar radar en el minimap.
+  const [currentYaw, setCurrentYaw] = useState<number>(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const y = pnRef.current?.getYaw?.();
+      if (typeof y === 'number') setCurrentYaw(y);
+    }, 120);
+    return () => clearInterval(id);
   }, []);
 
   const activeScene = scenes.find((s) => s.id === activeId);
@@ -217,9 +233,14 @@ export function TourViewer({
             imageUrl={activeScene.url}
             hotspots={activeHotspots}
             brandColor={color}
+            onReady={(h) => {
+              pnRef.current = h;
+            }}
             onHotspotClick={(h) => {
               if (h.kind === 'info') {
                 setInfoModal(h);
+              } else if (h.kind === 'url' && h.external_url) {
+                window.open(h.external_url, '_blank', 'noopener,noreferrer');
               } else if (h.target_scene_id) {
                 goToScene(h.target_scene_id);
               }
@@ -273,9 +294,84 @@ export function TourViewer({
           </div>
         )}
 
-        {/* Barra lateral derecha de acciones (audio, whatsapp, fullscreen).
-            Estilo R360: pastilla vertical con botones redondos. */}
+        {/* Barra lateral derecha de acciones */}
         <div className="absolute right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-white/15 bg-black/55 px-1.5 py-2 backdrop-blur-md">
+          {/* Home: reset vista a 0,0 */}
+          <button
+            type="button"
+            onClick={() => pnRef.current?.reset()}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            title="Volver a la vista inicial"
+            aria-label="Home"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-5h-2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            </svg>
+          </button>
+
+          {/* VR / giroscopio (móvil) */}
+          <button
+            type="button"
+            onClick={() => {
+              const active = pnRef.current?.toggleOrientation?.() ?? false;
+              setVrActive(active);
+              if (active && document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+              }
+            }}
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+              vrActive
+                ? 'bg-gold text-black hover:bg-gold-light'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+            title="Modo VR / Giroscopio (mueve el celular para mirar)"
+            aria-label="VR"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 7h18a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-5l-3-3h-2l-3 3H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" />
+              <circle cx="7.5" cy="12" r="1.5" />
+              <circle cx="16.5" cy="12" r="1.5" />
+            </svg>
+          </button>
+
+          {/* Share: Web Share API en móvil, fallback copy link */}
+          <button
+            type="button"
+            onClick={async () => {
+              const shareUrl = `${window.location.origin}/tour/${_slug}`;
+              if (navigator.share) {
+                try {
+                  await navigator.share({
+                    title: projectName,
+                    text: `Tour 360° de ${projectName}`,
+                    url: shareUrl,
+                  });
+                } catch {}
+              } else {
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                  showToast('success', 'Link copiado al portapapeles');
+                } catch {
+                  showToast('error', 'No se pudo copiar');
+                }
+              }
+            }}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            title="Compartir tour"
+            aria-label="Share"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+              <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+            </svg>
+          </button>
+
+          {/* Separador */}
+          <div className="my-1 h-px w-6 bg-white/15" />
+
           {/* Audio de la escena (si la escena tiene audio cargado) */}
           {activeScene?.audioUrl && (
             <SceneAudioButton
@@ -332,6 +428,7 @@ export function TourViewer({
           scenes={scenes}
           activeId={activeId}
           color={color}
+          currentYaw={currentYaw}
           onPick={goToScene}
         />
       )}
@@ -419,12 +516,14 @@ function FloorplanMinimap({
   scenes,
   activeId,
   color,
+  currentYaw,
   onPick,
 }: {
   src: string;
   scenes: ViewerScene[];
   activeId: string;
   color: string;
+  currentYaw: number;
   onPick: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -452,25 +551,58 @@ function FloorplanMinimap({
             if (s.floorplanX == null || s.floorplanY == null) return null;
             const isActive = s.id === activeId;
             return (
-              <button
+              <div
                 key={s.id}
-                type="button"
-                onClick={() => onPick(s.id)}
-                className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-2 text-[9px] font-bold transition-transform hover:scale-110"
+                className="absolute -translate-x-1/2 -translate-y-1/2"
                 style={{
                   left: `${s.floorplanX * 100}%`,
                   top: `${s.floorplanY * 100}%`,
-                  background: isActive ? color : 'rgba(0,0,0,0.7)',
-                  color: isActive ? '#000' : '#fff',
-                  borderColor: isActive ? '#fff' : 'rgba(255,255,255,0.8)',
-                  boxShadow: isActive
-                    ? `0 0 10px ${color}`
-                    : '0 0 4px rgba(0,0,0,0.5)',
                 }}
-                title={s.title}
               >
-                {idx + 1}
-              </button>
+                {/* Cono/radar de orientación (solo en pin activo) */}
+                {isActive && (
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                    style={{
+                      width: 60,
+                      height: 60,
+                      transform: `translate(-50%, -50%) rotate(${currentYaw}deg)`,
+                      transition: 'transform 80ms linear',
+                    }}
+                  >
+                    <div
+                      className="absolute left-1/2 top-1/2"
+                      style={{
+                        width: 0,
+                        height: 0,
+                        marginLeft: -18,
+                        marginTop: -36,
+                        borderLeft: '18px solid transparent',
+                        borderRight: '18px solid transparent',
+                        borderBottom: `30px solid ${color}`,
+                        opacity: 0.4,
+                        filter: `drop-shadow(0 0 4px ${color})`,
+                      }}
+                    />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onPick(s.id)}
+                  className="relative flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 text-[9px] font-bold transition-transform hover:scale-110"
+                  style={{
+                    background: isActive ? color : 'rgba(0,0,0,0.7)',
+                    color: isActive ? '#000' : '#fff',
+                    borderColor: isActive ? '#fff' : 'rgba(255,255,255,0.8)',
+                    boxShadow: isActive
+                      ? `0 0 10px ${color}`
+                      : '0 0 4px rgba(0,0,0,0.5)',
+                  }}
+                  title={s.title}
+                >
+                  {idx + 1}
+                </button>
+              </div>
             );
           })}
         </div>

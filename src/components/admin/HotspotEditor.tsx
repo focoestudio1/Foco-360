@@ -161,8 +161,8 @@ export function HotspotEditor({
                   : 'border-border'
               }`}
             >
-              {/* Tipo de hotspot: navegación o información */}
-              <div className="mb-3 grid grid-cols-2 gap-2">
+              {/* Tipo de hotspot: navegación, información o URL */}
+              <div className="mb-3 grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => updateHotspot(h.id, { kind: 'navigation' })}
@@ -176,7 +176,7 @@ export function HotspotEditor({
                     🤚 Navegación
                   </div>
                   <div className="mt-0.5 text-[10px] opacity-80">
-                    Click → cambia a otra escena.
+                    Cambia a otra escena.
                   </div>
                 </button>
                 <button
@@ -192,7 +192,23 @@ export function HotspotEditor({
                     ℹ Información
                   </div>
                   <div className="mt-0.5 text-[10px] opacity-80">
-                    Click → muestra texto/foto.
+                    Muestra texto/foto.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateHotspot(h.id, { kind: 'url' })}
+                  className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                    h.kind === 'url'
+                      ? 'border-green-400 bg-green-400/10 text-green-300'
+                      : 'border-border bg-bg-elevated text-text-muted hover:border-text-subtle'
+                  }`}
+                >
+                  <div className="text-xs uppercase tracking-wider">
+                    🔗 Link
+                  </div>
+                  <div className="mt-0.5 text-[10px] opacity-80">
+                    Abre URL externa.
                   </div>
                 </button>
               </div>
@@ -263,6 +279,22 @@ export function HotspotEditor({
                     rows={3}
                     className="input-field resize-none"
                     placeholder="Ej. Cocina con encimera de granito, electrodomésticos incluidos."
+                  />
+                </div>
+              )}
+
+              {/* Solo para 'url': URL externa */}
+              {h.kind === 'url' && (
+                <div className="mt-3">
+                  <Input
+                    label="URL a abrir"
+                    type="url"
+                    defaultValue={h.external_url ?? ''}
+                    onBlur={(e) =>
+                      updateHotspot(h.id, { external_url: e.target.value })
+                    }
+                    placeholder="https://inmobiliaria.com/ficha/casa-azul"
+                    hint="Al click se abre en nueva pestaña."
                   />
                 </div>
               )}

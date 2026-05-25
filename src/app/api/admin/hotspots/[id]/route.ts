@@ -24,8 +24,8 @@ export async function PATCH(
     update.target_scene_id = body.target_scene_id || null;
   if (body.pitch !== undefined) update.pitch = Number(body.pitch);
   if (body.yaw !== undefined) update.yaw = Number(body.yaw);
-  // kind: solo permitimos los dos valores válidos.
-  if (body.kind === 'navigation' || body.kind === 'info') {
+  // kind: 3 valores válidos.
+  if (body.kind === 'navigation' || body.kind === 'info' || body.kind === 'url') {
     update.kind = body.kind;
   }
   if ('info_text' in body) {
@@ -33,6 +33,9 @@ export async function PATCH(
   }
   if ('info_image_url' in body) {
     update.info_image_url = body.info_image_url?.toString().trim() || null;
+  }
+  if ('external_url' in body) {
+    update.external_url = body.external_url?.toString().trim() || null;
   }
 
   if (Object.keys(update).length === 0) {

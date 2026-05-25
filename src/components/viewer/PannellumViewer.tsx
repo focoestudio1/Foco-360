@@ -17,6 +17,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ViewerHotspot } from './TourViewer';
 
+// API que el visor expone al padre (TourViewer) vía callback onReady.
+export type PannellumHandle = {
+  reset: () => void;
+  toggleOrientation: () => boolean; // devuelve true si quedó activado
+  getYaw: () => number | null;
+};
+
 // Tipado mínimo del global de Pannellum.
 declare global {
   interface Window {
@@ -75,11 +82,14 @@ export function PannellumViewer({
   hotspots,
   onHotspotClick,
   brandColor = '#d4af37',
+  onReady,
 }: {
   imageUrl: string;
   hotspots: ViewerHotspot[];
   onHotspotClick: (h: ViewerHotspot) => void;
   brandColor?: string;
+  // Callback invocado tras crear el viewer; entrega la API imperativa.
+  onReady?: (handle: PannellumHandle) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -108,7 +118,9 @@ export function PannellumViewer({
         hfov: 100,
         minHfov: 50,
         maxHfov: 120,
-        autoRotate: 0,
+        // Rota lentamente cuando el usuario no interactúa 5 segundos.
+        autoRotate: -2,
+        autoRotateInactivityDelay: 5000,
         // Mensajes customizados: NUNCA mostrar la URL del archivo.
         // Por defecto Pannellum imprime "The file <URL>..." en errores
         // y la barra de carga; eso filtraría la firma R2.
@@ -135,14 +147,24 @@ export function PannellumViewer({
           // garantiza visibilidad sin depender del CSS class.
           createTooltipFunc: (hotspotDiv: HTMLElement) => {
             hotspotDiv.classList.add('foco-hotspot');
-            // Info hotspots usan color azul + icono 'i' en vez de mano.
+            // Cada tipo de hotspot tiene su color + icono SVG.
             const isInfo = h.kind === 'info';
-            const ringColor = isInfo ? '#3b82f6' : brandColor;
+            const isUrl = h.kind === 'url';
+            const ringColor = isInfo
+              ? '#3b82f6'
+              : isUrl
+              ? '#22c55e'
+              : brandColor;
             const iconSvg = isInfo
               ? `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="12" y1="16" x2="12" y2="12"/>
                   <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>`
+              : isUrl
+              ? `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                 </svg>`
               : `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M9 11.5V6a2 2 0 0 1 4 0v4"/>
@@ -199,8 +221,8 @@ export function PannellumViewer({
             `;
           },
           clickHandlerFunc: () => {
-            // Info hotspot: solo abre modal, sin zoom ni cambio de escena.
-            if (h.kind === 'info') {
+            // Info y URL no necesitan zoom ni cambio de escena.
+            if (h.kind === 'info' || h.kind === 'url') {
               onHotspotClick(h);
               return;
             }
@@ -216,6 +238,36 @@ export function PannellumViewer({
       });
 
       viewerRef.current = viewer;
+
+      // Entregamos API imperativa al padre.
+      onReady?.({
+        reset: () => {
+          try {
+            viewerRef.current?.lookAt?.(0, 0, 100, 600);
+          } catch {}
+        },
+        toggleOrientation: () => {
+          try {
+            const v = viewerRef.current;
+            if (!v) return false;
+            if (v.isOrientationActive?.()) {
+              v.stopOrientation?.();
+              return false;
+            }
+            v.startOrientation?.();
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        getYaw: () => {
+          try {
+            return viewerRef.current?.getYaw?.() ?? null;
+          } catch {
+            return null;
+          }
+        },
+      });
 
       // Pannellum dispara 'load' cuando termina de procesar la pano.
       viewer.on?.('load', () => {

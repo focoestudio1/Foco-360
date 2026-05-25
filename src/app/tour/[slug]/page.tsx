@@ -211,11 +211,12 @@ export default async function TourPage({
         pitch: Number(h.pitch),
         yaw: Number(h.yaw),
         label: h.label,
-        kind: (h.kind === 'info' ? 'info' : 'navigation') as
-          | 'info'
-          | 'navigation',
+        kind: (h.kind === 'info' || h.kind === 'url'
+          ? h.kind
+          : 'navigation') as 'info' | 'navigation' | 'url',
         info_text: h.info_text ?? null,
         info_image_url: h.info_image_url ?? null,
+        external_url: h.external_url ?? null,
       }))}
     />
   );

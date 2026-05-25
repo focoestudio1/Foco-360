@@ -25,9 +25,11 @@ export async function POST(
   const yaw = Number(body.yaw ?? 0);
   const target_scene_id = body.target_scene_id || null;
   const label = body.label ? String(body.label).trim() : null;
-  const kind = body.kind === 'info' ? 'info' : 'navigation';
+  const kind =
+    body.kind === 'info' || body.kind === 'url' ? body.kind : 'navigation';
   const info_text = body.info_text?.toString().trim() || null;
   const info_image_url = body.info_image_url?.toString().trim() || null;
+  const external_url = body.external_url?.toString().trim() || null;
 
   if (Number.isNaN(pitch) || Number.isNaN(yaw)) {
     return NextResponse.json({ error: 'pitch/yaw inválidos' }, { status: 400 });
@@ -45,6 +47,7 @@ export async function POST(
       kind,
       info_text,
       info_image_url,
+      external_url,
     })
     .select('*')
     .single();
