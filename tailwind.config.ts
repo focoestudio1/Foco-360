@@ -33,6 +33,9 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        // Tipografía display elegante (estilo logo / nombre de proyecto).
+        // Solo para overlays del visor — el resto sigue con Inter.
+        display: ['Cinzel', 'Georgia', 'serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.4s ease-out',

@@ -83,6 +83,12 @@ export function TourViewer({
   const [fullscreen, setFullscreen] = useState(false);
   // Hotspot tipo 'info' actualmente abierto en modal (null = cerrado).
   const [infoModal, setInfoModal] = useState<ViewerHotspot | null>(null);
+  // Splash de intro: visible los primeros 2.5s al cargar el tour.
+  const [showSplash, setShowSplash] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   const activeScene = scenes.find((s) => s.id === activeId);
   const activeHotspots = hotspots.filter((h) => h.scene_id === activeId);
@@ -142,6 +148,42 @@ export function TourViewer({
 
   return (
     <div className="fixed inset-0 flex flex-col bg-black text-white">
+      {/* Splash de intro: aparece 2.5s al cargar y se desvanece */}
+      <div
+        className={`pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center bg-black transition-opacity duration-700 ${
+          showSplash ? 'opacity-100' : 'opacity-0'
+        }`}
+        aria-hidden={!showSplash}
+      >
+        {logoUrl ? (
+          <span className="mb-6 inline-flex items-center rounded-md bg-white/95 px-3 py-1.5 shadow-lg">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoUrl}
+              alt={projectName}
+              className="h-10 w-auto"
+              draggable={false}
+            />
+          </span>
+        ) : (
+          <div
+            className="mb-4 h-2 w-2 rounded-full"
+            style={{ background: color, boxShadow: `0 0 16px ${color}` }}
+          />
+        )}
+        <h1
+          className="font-display text-4xl font-medium tracking-[0.25em] text-white animate-fade-in md:text-5xl"
+          style={{ textShadow: `0 4px 24px ${color}40` }}
+        >
+          {projectName.toUpperCase()}
+        </h1>
+        <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.4em] text-white/50">
+          <span className="h-px w-10" style={{ background: color }} />
+          <span>Tour virtual 360°</span>
+          <span className="h-px w-10" style={{ background: color }} />
+        </div>
+      </div>
+
       {/* Banner de vista previa de admin */}
       {isPreview && (
         <div className="z-30 flex items-center justify-center gap-3 border-b border-gold/30 bg-gold/10 px-4 py-1.5 text-[11px] font-medium uppercase tracking-wider text-gold backdrop-blur">
@@ -193,18 +235,27 @@ export function TourViewer({
           )}
         </div>
 
-        {/* Título + descripción de escena */}
+        {/* Watermark central: nombre del proyecto en serif elegante + escena */}
         {activeScene && (
-          <div className="pointer-events-none absolute right-4 top-4 z-20 max-w-xs rounded-md bg-black/40 px-3 py-2 backdrop-blur">
-            <div className="text-xs uppercase tracking-wider">
-              <span className="text-text-subtle">{projectName}</span>{' '}
-              <span className="mx-1 text-text-subtle">·</span>
-              <span className="text-gold">{activeScene.title}</span>
+          <div className="pointer-events-none absolute left-1/2 top-6 z-20 flex -translate-x-1/2 flex-col items-center text-center max-w-[80%]">
+            <h2
+              className="font-display text-2xl font-medium tracking-[0.18em] text-white/90 uppercase"
+              style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}
+            >
+              {projectName}
+            </h2>
+            <div className="mt-1 flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/65">
+              <span className="h-px w-6 bg-white/40" />
+              <span>{activeScene.title}</span>
+              <span className="h-px w-6 bg-white/40" />
             </div>
             {activeScene.description && (
-              <div className="mt-1 text-[11px] leading-snug text-white/85">
+              <p
+                className="mt-2 max-w-md text-[11px] leading-snug text-white/75 italic"
+                style={{ textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+              >
                 {activeScene.description}
-              </div>
+              </p>
             )}
           </div>
         )}
