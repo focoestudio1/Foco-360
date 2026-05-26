@@ -59,6 +59,13 @@ export type Project = {
   // Plano 2D del proyecto + posiciones de escenas en él.
   floorplan_url: string | null;
   floorplan_signed_url: string | null;
+  // Ficha del inmueble (specs card en el visor).
+  specs_image_url: string | null;
+  specs_image_signed_url: string | null;
+  specs_title: string | null;
+  specs_price: string | null;
+  specs_features: string | null;
+  specs_description: string | null;
   // true si el proyecto tiene contraseña configurada (no expone el hash).
   has_password: boolean;
   // WhatsApp opcional para botón flotante.

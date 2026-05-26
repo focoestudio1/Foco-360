@@ -12,7 +12,7 @@
 
 import imageCompression from 'browser-image-compression';
 
-export type UploadKind = 'cover' | 'scene' | 'logo' | 'audio' | 'floorplan';
+export type UploadKind = 'cover' | 'scene' | 'logo' | 'audio' | 'floorplan' | 'specs';
 
 export type UploadProgress = {
   // Fase actual: comprimir o subir.
@@ -33,6 +33,7 @@ const THRESHOLDS_MB: Record<UploadKind, number> = {
   logo: 1,
   audio: Infinity,
   floorplan: 2,
+  specs: 3,
 };
 
 // Comprime si hace falta. Mantiene calidad visual alta:
@@ -55,11 +56,13 @@ async function compressIfNeeded(
     kind === 'scene' ? 4096 :
     kind === 'logo' ? 800 :
     kind === 'floorplan' ? 2400 :
+    kind === 'specs' ? 1600 :
     1920;
   const targetMB =
     kind === 'scene' ? 5 :
     kind === 'logo' ? 0.5 :
     kind === 'floorplan' ? 1 :
+    kind === 'specs' ? 1 :
     1.5;
 
   // Para escenas/portadas convertimos a JPEG (mejor compresión).
@@ -186,6 +189,29 @@ export async function uploadScene(
   if (!confirm.ok) {
     const err = await confirm.json().catch(() => ({}));
     throw new Error(err.error || 'Error al confirmar la escena');
+  }
+  return confirm.json();
+}
+
+// API pública: sube la foto de la ficha del inmueble.
+export async function uploadSpecsImage(
+  projectId: string,
+  file: File,
+  onProgress?: (p: UploadProgress) => void
+): Promise<{ key: string }> {
+  const compressed = await compressIfNeeded(file, 'specs', (pct) =>
+    onProgress?.({ phase: 'compressing', loaded: 0, total: 0, pct })
+  );
+  const { uploadUrl, key } = await getSignedUrl(projectId, 'specs', compressed);
+  await putWithProgress(uploadUrl, compressed, onProgress);
+  const confirm = await fetch(`/api/admin/projects/${projectId}/specs-image`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key }),
+  });
+  if (!confirm.ok) {
+    const err = await confirm.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al confirmar la foto');
   }
   return confirm.json();
 }

@@ -15,6 +15,7 @@ import {
   uploadCover as uploadCoverDirect,
   uploadLogo as uploadLogoDirect,
   uploadFloorplan as uploadFloorplanDirect,
+  uploadSpecsImage as uploadSpecsImageDirect,
 } from '@/lib/uploads';
 import type { Project } from './ProjectEditor';
 
@@ -36,6 +37,10 @@ export function ProjectSettings({
     whatsapp_phone: project.whatsapp_phone ?? '',
     whatsapp_message: project.whatsapp_message ?? '',
     brand_color: project.brand_color ?? '#d4af37',
+    specs_title: project.specs_title ?? '',
+    specs_price: project.specs_price ?? '',
+    specs_features: project.specs_features ?? '',
+    specs_description: project.specs_description ?? '',
   });
   // Modo de acceso: derivado del estado actual del proyecto.
   // El usuario lo cambia con un toggle explícito.
@@ -52,10 +57,14 @@ export function ProjectSettings({
   const [floorUploading, setFloorUploading] = useState(false);
   const [floorPct, setFloorPct] = useState(0);
   const [floorPhase, setFloorPhase] = useState<'compressing' | 'uploading'>('compressing');
+  const [specsUploading, setSpecsUploading] = useState(false);
+  const [specsPct, setSpecsPct] = useState(0);
+  const [specsPhase, setSpecsPhase] = useState<'compressing' | 'uploading'>('compressing');
 
   const coverRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLInputElement>(null);
   const floorRef = useRef<HTMLInputElement>(null);
+  const specsRef = useRef<HTMLInputElement>(null);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
   const tourLink = `${siteUrl}/tour/${project.slug}`;
@@ -70,6 +79,10 @@ export function ProjectSettings({
       whatsapp_phone: form.whatsapp_phone,
       whatsapp_message: form.whatsapp_message,
       brand_color: form.brand_color,
+      specs_title: form.specs_title,
+      specs_price: form.specs_price,
+      specs_features: form.specs_features,
+      specs_description: form.specs_description,
     };
     // Si el usuario quiere contraseña y escribió una, la mandamos.
     if (wantPassword && form.password) {
@@ -140,6 +153,42 @@ export function ProjectSettings({
       setLogoUploading(false);
       setLogoPct(0);
     }
+  }
+
+  async function uploadSpecsFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Selecciona una imagen');
+      return;
+    }
+    setSpecsUploading(true);
+    setSpecsPct(0);
+    setSpecsPhase('compressing');
+    try {
+      await uploadSpecsImageDirect(project.id, file, (p) => {
+        setSpecsPct(p.pct);
+        setSpecsPhase(p.phase);
+      });
+      showToast('success', 'Foto de ficha actualizada');
+      onUpdated();
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
+      setSpecsUploading(false);
+      setSpecsPct(0);
+    }
+  }
+
+  async function removeSpecsImage() {
+    if (!confirm('¿Quitar la foto de la ficha del inmueble?')) return;
+    const res = await fetch(`/api/admin/projects/${project.id}/specs-image`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      showToast('error', 'Error al quitar foto');
+      return;
+    }
+    showToast('success', 'Foto quitada');
+    onUpdated();
   }
 
   async function uploadFloorplanFile(file: File) {
@@ -500,6 +549,111 @@ export function ProjectSettings({
             />
           </div>
         )}
+      </div>
+
+      {/* ---------- Card FICHA DEL INMUEBLE ---------- */}
+      <div className="card space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          🏠 Ficha del inmueble
+        </h2>
+        <p className="text-[11px] text-text-subtle">
+          Card flotante en el visor con foto + datos del inmueble (para venta,
+          arriendo o muestra). Si dejas todo vacío, la card no aparece.
+        </p>
+
+        {/* Foto */}
+        {project.specs_image_signed_url ? (
+          <div className="aspect-video w-full overflow-hidden rounded-md border border-border bg-bg-elevated">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={project.specs_image_signed_url}
+              alt="Foto ficha"
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-border text-[11px] text-text-subtle">
+            Sin foto
+          </div>
+        )}
+        <input
+          ref={specsRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadSpecsFile(f);
+            e.target.value = '';
+          }}
+        />
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => specsRef.current?.click()}
+            loading={specsUploading}
+            className="flex-1"
+          >
+            {specsUploading
+              ? `${specsPhase === 'compressing' ? 'Optimizando' : 'Subiendo'}… ${specsPct}%`
+              : project.specs_image_url
+              ? 'Cambiar foto'
+              : 'Subir foto'}
+          </Button>
+          {project.specs_image_url && (
+            <Button variant="ghost" onClick={removeSpecsImage}>
+              Quitar
+            </Button>
+          )}
+        </div>
+        {specsUploading && (
+          <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
+            <div
+              className={`h-full transition-all ${
+                specsPhase === 'compressing' ? 'bg-blue-400' : 'bg-gold'
+              }`}
+              style={{ width: `${specsPct}%` }}
+            />
+          </div>
+        )}
+
+        {/* Campos de la ficha */}
+        <Input
+          label="Título"
+          value={form.specs_title}
+          onChange={(e) => setForm({ ...form, specs_title: e.target.value })}
+          placeholder="Ej. Casa 3 habitaciones con piscina"
+        />
+        <Input
+          label="Precio"
+          value={form.specs_price}
+          onChange={(e) => setForm({ ...form, specs_price: e.target.value })}
+          placeholder="Ej. $450.000.000 COP · En venta"
+        />
+        <div>
+          <label className="label">Características (una por línea)</label>
+          <textarea
+            value={form.specs_features}
+            onChange={(e) =>
+              setForm({ ...form, specs_features: e.target.value })
+            }
+            rows={4}
+            className="input-field resize-none"
+            placeholder={'Ej.\n3 habitaciones\n2 baños\n120 m²\nParqueadero'}
+          />
+          <p className="mt-1 text-[10px] text-text-subtle">
+            Cada línea aparece como un item con viñeta dorada en la card.
+          </p>
+        </div>
+        <Textarea
+          label="Descripción"
+          value={form.specs_description}
+          onChange={(e) =>
+            setForm({ ...form, specs_description: e.target.value })
+          }
+          rows={3}
+          placeholder="Ej. Casa esquinera en sector residencial, cocina integral..."
+        />
       </div>
 
       {/* ---------- Card COLOR DE MARCA ---------- */}

@@ -64,6 +64,7 @@ export function TourViewer({
   brandColor,
   isEmbed = false,
   floorplanUrl,
+  specs,
 }: {
   slug: string;
   projectName: string;
@@ -84,6 +85,14 @@ export function TourViewer({
   isEmbed?: boolean;
   // URL firmada del plano 2D si el proyecto tiene uno.
   floorplanUrl?: string | null;
+  // Ficha del inmueble (opcional, todos campos opcionales).
+  specs?: {
+    imageUrl: string | null;
+    title: string | null;
+    price: string | null;
+    features: string | null;
+    description: string | null;
+  };
 }) {
   // Color final usado en hotspots, acentos.
   const color = brandColor || '#d4af37';
@@ -91,6 +100,21 @@ export function TourViewer({
   const [fullscreen, setFullscreen] = useState(false);
   // Hotspot tipo 'info' actualmente abierto en modal (null = cerrado).
   const [infoModal, setInfoModal] = useState<ViewerHotspot | null>(null);
+  // Modal ficha del inmueble.
+  const [specsModalOpen, setSpecsModalOpen] = useState(false);
+
+  // ¿Hay ficha del inmueble para mostrar?
+  const hasSpecs = !!(
+    specs?.imageUrl ||
+    specs?.title ||
+    specs?.price ||
+    specs?.features ||
+    specs?.description
+  );
+  const featuresList = (specs?.features ?? '')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
   // Splash de intro: visible los primeros 2.5s al cargar el tour.
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
@@ -426,6 +450,112 @@ export function TourViewer({
           </button>
         </div>
       </div>
+
+      {/* Ficha del inmueble (esquina inferior izquierda) */}
+      {hasSpecs && (
+        <button
+          type="button"
+          onClick={() => setSpecsModalOpen(true)}
+          className={`group absolute left-4 z-20 max-w-[240px] cursor-pointer overflow-hidden rounded-lg border border-white/15 bg-black/65 text-left backdrop-blur-md transition-all hover:bg-black/80 ${
+            floorplanUrl ? 'bottom-[200px]' : 'bottom-4'
+          }`}
+          title="Ver ficha del inmueble completa"
+        >
+          {specs?.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={specs.imageUrl}
+              alt={specs.title ?? 'Ficha'}
+              className="h-24 w-full object-cover"
+            />
+          )}
+          <div className="p-2.5">
+            {specs?.title && (
+              <div className="text-xs font-semibold text-white">
+                {specs.title}
+              </div>
+            )}
+            {specs?.price && (
+              <div
+                className="mt-0.5 text-[11px] font-medium"
+                style={{ color }}
+              >
+                {specs.price}
+              </div>
+            )}
+            <div className="mt-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-white/60">
+              <span>Ver detalles</span>
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </div>
+          </div>
+        </button>
+      )}
+
+      {/* Modal expandido de ficha del inmueble */}
+      {specsModalOpen && hasSpecs && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+          onClick={() => setSpecsModalOpen(false)}
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-bg-card shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setSpecsModalOpen(false)}
+              className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/80"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+            {specs?.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={specs.imageUrl}
+                alt={specs.title ?? 'Ficha'}
+                className="h-64 w-full object-cover"
+              />
+            )}
+            <div className="space-y-4 p-6">
+              {specs?.title && (
+                <h2 className="font-display text-2xl font-medium tracking-wide text-text">
+                  {specs.title}
+                </h2>
+              )}
+              {specs?.price && (
+                <div
+                  className="text-lg font-medium"
+                  style={{ color }}
+                >
+                  {specs.price}
+                </div>
+              )}
+              {featuresList.length > 0 && (
+                <ul className="space-y-1.5">
+                  {featuresList.map((f, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-sm text-text-muted"
+                    >
+                      <span
+                        className="mt-1 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                        style={{ background: color }}
+                      />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {specs?.description && (
+                <p className="whitespace-pre-line text-sm leading-relaxed text-text-muted">
+                  {specs.description}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mini-mapa del plano 2D (esquina inferior izquierda) */}
       {floorplanUrl && (

@@ -58,6 +58,9 @@ export async function GET(
   const floorplan_signed_url = project.floorplan_url
     ? await getSignedReadUrl(project.floorplan_url).catch(() => null)
     : null;
+  const specs_image_signed_url = project.specs_image_url
+    ? await getSignedReadUrl(project.specs_image_url).catch(() => null)
+    : null;
 
   const scenesSigned = await Promise.all(
     (scenes ?? []).map(async (s) => ({
@@ -80,6 +83,7 @@ export async function GET(
       cover_signed_url,
       logo_signed_url,
       floorplan_signed_url,
+      specs_image_signed_url,
     },
     scenes: scenesSigned,
     hotspots,
@@ -128,6 +132,19 @@ export async function PATCH(
     } else if (v === '') {
       update.brand_color = null; // vuelve al default
     }
+  }
+  // Ficha del inmueble (specs)
+  if ('specs_title' in body) {
+    update.specs_title = body.specs_title?.toString().trim() || null;
+  }
+  if ('specs_price' in body) {
+    update.specs_price = body.specs_price?.toString().trim() || null;
+  }
+  if ('specs_features' in body) {
+    update.specs_features = body.specs_features?.toString().trim() || null;
+  }
+  if ('specs_description' in body) {
+    update.specs_description = body.specs_description?.toString().trim() || null;
   }
 
   // Contraseña:

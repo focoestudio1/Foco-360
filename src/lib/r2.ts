@@ -142,3 +142,9 @@ export function buildFloorplanKey(slug: string, filename: string): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `projects/${slug}/floorplan-${Date.now()}-${safe}`;
 }
+
+// Key para foto de la ficha del inmueble.
+export function buildSpecsKey(slug: string, filename: string): string {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `projects/${slug}/specs-${Date.now()}-${safe}`;
+}
