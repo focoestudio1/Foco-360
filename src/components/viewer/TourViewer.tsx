@@ -451,42 +451,34 @@ export function TourViewer({
         </div>
       </div>
 
-      {/* Ficha del inmueble (esquina inferior izquierda) */}
+      {/* Ficha del inmueble: pastilla compacta arriba-izquierda
+          (no compite con thumbnails de abajo) */}
       {hasSpecs && (
         <button
           type="button"
           onClick={() => setSpecsModalOpen(true)}
-          className={`group absolute left-4 z-20 max-w-[240px] cursor-pointer overflow-hidden rounded-lg border border-white/15 bg-black/65 text-left backdrop-blur-md transition-all hover:bg-black/80 ${
-            floorplanUrl ? 'bottom-[200px]' : 'bottom-4'
-          }`}
+          className="group absolute left-4 top-20 z-20 max-w-[260px] cursor-pointer rounded-md border border-white/15 bg-black/60 px-3 py-2 text-left backdrop-blur-md transition-all hover:bg-black/80"
           title="Ver ficha del inmueble completa"
+          style={{ borderLeft: `3px solid ${color}` }}
         >
-          {specs?.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={specs.imageUrl}
-              alt={specs.title ?? 'Ficha'}
-              className="h-24 w-full object-cover"
-            />
-          )}
-          <div className="p-2.5">
-            {specs?.title && (
-              <div className="text-xs font-semibold text-white">
-                {specs.title}
-              </div>
-            )}
-            {specs?.price && (
-              <div
-                className="mt-0.5 text-[11px] font-medium"
-                style={{ color }}
-              >
-                {specs.price}
-              </div>
-            )}
-            <div className="mt-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-white/60">
-              <span>Ver detalles</span>
-              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+          {specs?.title && (
+            <div className="text-xs font-semibold text-white">
+              {specs.title}
             </div>
+          )}
+          {specs?.price && (
+            <div
+              className="mt-0.5 text-[11px] font-medium"
+              style={{ color }}
+            >
+              {specs.price}
+            </div>
+          )}
+          <div className="mt-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/60">
+            <span>🏠 Ver detalles</span>
+            <span className="transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
           </div>
         </button>
       )}

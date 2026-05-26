@@ -12,21 +12,31 @@ export const metadata = { title: 'Dashboard' };
 export default async function DashboardPage() {
   const supabase = createSupabaseAdminClient();
 
-  const [{ count: totalProjects }, { data: recent }, { data: viewsAgg }] =
+  const [{ count: totalProjects }, { data: recent }, { data: views }] =
     await Promise.all([
       supabase
         .from('projects')
         .select('*', { count: 'exact', head: true }),
       supabase
         .from('projects')
-        .select('id, slug, name, client_name, is_active, views, created_at')
+        .select('id, slug, name, client_name, is_active, created_at')
         .order('created_at', { ascending: false })
         .limit(5),
-      supabase.from('projects').select('views'),
+      // Contamos vistas reales desde scene_views (lo nuevo, incluye
+      // todas las visitas a tours publicos sin contraseña).
+      supabase.from('scene_views').select('project_id'),
     ]);
 
-  const totalViews =
-    viewsAgg?.reduce((acc, p: any) => acc + (p.views ?? 0), 0) ?? 0;
+  // Total = todas las vistas de escenas registradas.
+  const totalViews = views?.length ?? 0;
+  // Conteo por proyecto para mostrar en la lista recientes.
+  const viewsByProject = (views ?? []).reduce<Record<string, number>>(
+    (acc, v: any) => {
+      acc[v.project_id] = (acc[v.project_id] ?? 0) + 1;
+      return acc;
+    },
+    {}
+  );
 
   const activeCount = recent?.filter((p: any) => p.is_active).length ?? 0;
 
@@ -84,7 +94,7 @@ export default async function DashboardPage() {
                     {p.is_active ? 'Activo' : 'Inactivo'}
                   </span>
                   <span className="tabular-nums text-text-muted">
-                    {p.views ?? 0} vistas
+                    {viewsByProject[p.id] ?? 0} vistas
                   </span>
                 </div>
               </li>

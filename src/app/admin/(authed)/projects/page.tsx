@@ -8,21 +8,35 @@ import { createSupabaseAdminClient } from '@/lib/supabase-server';
 import { formatDate } from '@/lib/utils';
 import { getSignedReadUrl } from '@/lib/r2';
 import { CopyLinkButton } from '@/components/admin/CopyLinkButton';
+import { ProjectCardActions } from '@/components/admin/ProjectCardActions';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Proyectos' };
 
 export default async function ProjectsListPage() {
   const supabase = createSupabaseAdminClient();
-  const { data: projects } = await supabase
-    .from('projects')
-    .select('id, slug, name, client_name, is_active, views, cover_url, created_at')
-    .order('created_at', { ascending: false });
+  const [{ data: projects }, { data: views }] = await Promise.all([
+    supabase
+      .from('projects')
+      .select('id, slug, name, client_name, is_active, cover_url, created_at')
+      .order('created_at', { ascending: false }),
+    supabase.from('scene_views').select('project_id'),
+  ]);
 
-  // Firmamos las URLs de portada en paralelo.
+  // Conteo de vistas reales por proyecto.
+  const viewsByProject = (views ?? []).reduce<Record<string, number>>(
+    (acc, v: any) => {
+      acc[v.project_id] = (acc[v.project_id] ?? 0) + 1;
+      return acc;
+    },
+    {}
+  );
+
+  // Firmamos las URLs de portada en paralelo + agregamos views count.
   const items = await Promise.all(
     (projects ?? []).map(async (p) => ({
       ...p,
+      views: viewsByProject[p.id] ?? 0,
       cover_signed_url: p.cover_url
         ? await getSignedReadUrl(p.cover_url).catch(() => null)
         : null,
@@ -103,6 +117,16 @@ export default async function ProjectsListPage() {
                 <div className="flex items-center justify-between border-t border-border pt-3 text-xs">
                   <span className="text-text-muted">{p.views ?? 0} vistas</span>
                   <CopyLinkButton url={`${siteUrl}/tour/${p.slug}`} />
+                </div>
+                <div className="flex items-center justify-between border-t border-border pt-2">
+                  <span className="text-[10px] uppercase tracking-wider text-text-subtle">
+                    Acciones rápidas
+                  </span>
+                  <ProjectCardActions
+                    projectId={p.id}
+                    projectName={p.name}
+                    isActive={p.is_active}
+                  />
                 </div>
               </div>
             </article>
