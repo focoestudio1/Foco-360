@@ -6,6 +6,7 @@
 // ============================================================
 
 import { NextResponse, type NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { getAdminUser } from '@/lib/auth';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
@@ -171,6 +172,20 @@ export async function PATCH(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Invalida el cache del visor público y de las páginas admin del
+  // proyecto. Sin esto, Vercel edge puede servir HTML stale después
+  // de pausar/activar.
+  if (data?.slug) {
+    try {
+      revalidatePath(`/tour/${data.slug}`);
+      revalidatePath(`/admin/projects/${data.slug}`);
+      revalidatePath('/admin/projects');
+      revalidatePath('/admin');
+    } catch (e) {
+      console.warn('[revalidate]', e);
+    }
   }
   return NextResponse.json({ project: data });
 }
