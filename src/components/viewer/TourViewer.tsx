@@ -449,41 +449,42 @@ export function TourViewer({
             )}
           </button>
         </div>
-      </div>
 
-      {/* Ficha del inmueble: pastilla compacta abajo-izquierda.
-          Si tambien hay floorplan, se apila arriba del minimap. */}
-      {hasSpecs && (
-        <button
-          type="button"
-          onClick={() => setSpecsModalOpen(true)}
-          className={`group absolute left-4 z-20 max-w-[260px] cursor-pointer rounded-md border border-white/15 bg-black/65 px-3 py-2 text-left backdrop-blur-md transition-all hover:bg-black/80 ${
-            floorplanUrl ? 'bottom-[210px]' : 'bottom-4'
-          }`}
-          title="Ver ficha del inmueble completa"
-          style={{ borderLeft: `3px solid ${color}` }}
-        >
-          {specs?.title && (
-            <div className="text-xs font-semibold text-white">
-              {specs.title}
+        {/* Ficha del inmueble: dentro del relative flex-1 para que
+            bottom-4 sea relativo al area del visor — sin overlap con
+            el strip de thumbnails que vive afuera del flex-1. */}
+        {hasSpecs && (
+          <button
+            type="button"
+            onClick={() => setSpecsModalOpen(true)}
+            className={`group absolute left-4 z-20 max-w-[260px] cursor-pointer rounded-md border border-white/15 bg-black/65 px-3 py-2 text-left backdrop-blur-md transition-all hover:bg-black/80 ${
+              floorplanUrl ? 'bottom-[210px]' : 'bottom-4'
+            }`}
+            title="Ver ficha del inmueble completa"
+            style={{ borderLeft: `3px solid ${color}` }}
+          >
+            {specs?.title && (
+              <div className="text-xs font-semibold text-white">
+                {specs.title}
+              </div>
+            )}
+            {specs?.price && (
+              <div
+                className="mt-0.5 text-[11px] font-medium"
+                style={{ color }}
+              >
+                {specs.price}
+              </div>
+            )}
+            <div className="mt-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/60">
+              <span>🏠 Ver detalles</span>
+              <span className="transition-transform group-hover:translate-x-0.5">
+                →
+              </span>
             </div>
-          )}
-          {specs?.price && (
-            <div
-              className="mt-0.5 text-[11px] font-medium"
-              style={{ color }}
-            >
-              {specs.price}
-            </div>
-          )}
-          <div className="mt-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/60">
-            <span>🏠 Ver detalles</span>
-            <span className="transition-transform group-hover:translate-x-0.5">
-              →
-            </span>
-          </div>
-        </button>
-      )}
+          </button>
+        )}
+      </div>
 
       {/* Modal expandido de ficha del inmueble */}
       {specsModalOpen && hasSpecs && (
