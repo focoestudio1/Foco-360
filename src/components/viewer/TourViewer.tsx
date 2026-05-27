@@ -451,13 +451,15 @@ export function TourViewer({
         </div>
       </div>
 
-      {/* Ficha del inmueble: pastilla compacta arriba-izquierda
-          (no compite con thumbnails de abajo) */}
+      {/* Ficha del inmueble: pastilla compacta abajo-izquierda.
+          Si tambien hay floorplan, se apila arriba del minimap. */}
       {hasSpecs && (
         <button
           type="button"
           onClick={() => setSpecsModalOpen(true)}
-          className="group absolute left-4 top-20 z-20 max-w-[260px] cursor-pointer rounded-md border border-white/15 bg-black/60 px-3 py-2 text-left backdrop-blur-md transition-all hover:bg-black/80"
+          className={`group absolute left-4 z-20 max-w-[260px] cursor-pointer rounded-md border border-white/15 bg-black/65 px-3 py-2 text-left backdrop-blur-md transition-all hover:bg-black/80 ${
+            floorplanUrl ? 'bottom-[210px]' : 'bottom-4'
+          }`}
           title="Ver ficha del inmueble completa"
           style={{ borderLeft: `3px solid ${color}` }}
         >

@@ -8,6 +8,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
+import { getAdminUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,13 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  // Excluye al admin logueado de las estadisticas: el dueño viendo
+  // su propio tour no debería inflar las visitas.
+  const admin = await getAdminUser();
+  if (admin) {
+    return NextResponse.json({ ok: true, skipped: 'admin' });
+  }
+
   const body = await req.json().catch(() => null);
   const sceneId = String(body?.scene_id ?? '');
   const durationMs = Math.max(
