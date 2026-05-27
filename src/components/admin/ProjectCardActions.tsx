@@ -62,7 +62,17 @@ export function ProjectCardActions({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-2">
+      {/* Badge de estado (controlado por estado local — feedback instantáneo) */}
+      <span
+        className={
+          active
+            ? 'rounded-full bg-gold/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold'
+            : 'rounded-full bg-text-subtle/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-subtle'
+        }
+      >
+        {active ? 'Activo' : 'Pausado'}
+      </span>
       <button
         type="button"
         onClick={toggle}
@@ -76,13 +86,11 @@ export function ProjectCardActions({
         aria-label={active ? 'Pausar' : 'Activar'}
       >
         {active ? (
-          // Icono pause
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <rect x="6" y="5" width="4" height="14" rx="1" />
             <rect x="14" y="5" width="4" height="14" rx="1" />
           </svg>
         ) : (
-          // Icono play
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path d="M8 5v14l11-7z" />
           </svg>

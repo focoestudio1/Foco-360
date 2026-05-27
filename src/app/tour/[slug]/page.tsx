@@ -235,13 +235,33 @@ export default async function TourPage({
 // ------------------------------------------------------------
 // Sub-componentes
 // ------------------------------------------------------------
+function BrandedLogo() {
+  const logoUrl = process.env.NEXT_PUBLIC_LOGO_URL;
+  const brand = process.env.NEXT_PUBLIC_BRAND_NAME || 'FOCO 360°';
+  if (logoUrl) {
+    return (
+      <div className="mb-10 inline-flex items-center rounded-2xl bg-white/95 p-5 shadow-xl shadow-gold/20">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logoUrl} alt={brand} className="h-24 w-auto sm:h-28" draggable={false} />
+      </div>
+    );
+  }
+  return <Logo asLink={false} className="mb-10 scale-150 justify-center" />;
+}
+
 function UnavailableTour() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-      <Logo asLink={false} className="mb-8 justify-center" />
-      <h1 className="mb-2 text-2xl font-light">Tour no disponible</h1>
-      <p className="text-sm text-text-muted">
-        Este tour ha sido desactivado por el administrador.
+      <BrandedLogo />
+      <p className="mb-3 text-xs font-medium uppercase tracking-[0.3em] text-gold">
+        Vuelve pronto
+      </p>
+      <h1 className="font-display mb-3 text-3xl font-medium tracking-wide sm:text-4xl">
+        Tour pausado
+      </h1>
+      <p className="max-w-md text-sm leading-relaxed text-text-muted">
+        Este tour no está disponible en este momento. Contacta al administrador
+        para más información.
       </p>
     </main>
   );
@@ -256,13 +276,17 @@ function EmptyTour({
 }) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-      <Logo asLink={false} className="mb-8 justify-center" />
-      <h1 className="mb-2 text-2xl font-light">{name}</h1>
-      <p className="text-sm text-text-muted">
-        Este tour aún no tiene escenas. Vuelve más tarde.
+      <BrandedLogo />
+      <p className="mb-3 text-xs font-medium uppercase tracking-[0.3em] text-gold">
+        Próximamente
       </p>
-      {/* Bloque de diagnóstico — visible para admin durante pruebas.
-          Si esto sale en producción, copiar y mandar. */}
+      <h1 className="font-display mb-3 text-3xl font-medium tracking-wide sm:text-4xl">
+        {name}
+      </h1>
+      <p className="max-w-md text-sm leading-relaxed text-text-muted">
+        Este tour aún no tiene escenas cargadas. Estamos preparándolo —
+        vuelve más tarde.
+      </p>
       {debug && (
         <pre className="mt-8 max-w-xl whitespace-pre-wrap rounded-md border border-border bg-bg-elevated p-3 text-left text-[10px] text-text-subtle">
 {`DEBUG

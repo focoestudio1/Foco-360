@@ -94,23 +94,12 @@ export default async function ProjectsListPage() {
               </Link>
 
               <div className="space-y-2 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <Link
-                    href={`/admin/projects/${p.slug}`}
-                    className="font-medium text-text hover:text-gold"
-                  >
-                    {p.name}
-                  </Link>
-                  <span
-                    className={
-                      p.is_active
-                        ? 'rounded-full bg-gold/10 px-2 py-0.5 text-[10px] text-gold'
-                        : 'rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-subtle'
-                    }
-                  >
-                    {p.is_active ? 'Activo' : 'Inactivo'}
-                  </span>
-                </div>
+                <Link
+                  href={`/admin/projects/${p.slug}`}
+                  className="block font-medium text-text hover:text-gold"
+                >
+                  {p.name}
+                </Link>
                 <div className="text-xs text-text-subtle">
                   {p.client_name || 'Sin cliente'} · {formatDate(p.created_at)}
                 </div>
