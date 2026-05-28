@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Logo } from '@/components/ui/Logo';
 import { showToast } from '@/components/ui/Toast';
+import { getTrackById, getTrackUrl } from '@/lib/musicLibrary';
 import type { PannellumHandle } from './PannellumViewer';
 
 const Pannellum = dynamic(() => import('./PannellumViewer').then((m) => m.PannellumViewer), {
@@ -65,6 +66,8 @@ export function TourViewer({
   isEmbed = false,
   floorplanUrl,
   specs,
+  backgroundMusicId,
+  backgroundMusicVolume,
 }: {
   slug: string;
   projectName: string;
@@ -93,6 +96,10 @@ export function TourViewer({
     features: string | null;
     description: string | null;
   };
+  // Música de fondo del tour (opcional). Si backgroundMusicId es null,
+  // no se renderiza el componente.
+  backgroundMusicId?: string | null;
+  backgroundMusicVolume?: number | null;
 }) {
   // Color final usado en hotspots, acentos.
   const color = brandColor || '#d4af37';
@@ -121,6 +128,11 @@ export function TourViewer({
     const t = setTimeout(() => setShowSplash(false), 2500);
     return () => clearTimeout(t);
   }, []);
+
+  // Música de fondo + ducking: cuando la narración de la escena
+  // está sonando, BackgroundMusic baja su volumen automáticamente.
+  const musicTrack = getTrackById(backgroundMusicId);
+  const [narrationPlaying, setNarrationPlaying] = useState(false);
 
   // Handle del visor Pannellum (para Home, VR, etc).
   const pnRef = useRef<PannellumHandle | null>(null);
@@ -407,6 +419,17 @@ export function TourViewer({
             <SceneAudioButton
               key={activeScene.id}
               src={activeScene.audioUrl}
+              onPlayingChange={setNarrationPlaying}
+            />
+          )}
+
+          {/* Música de fondo del tour (autoplay muteado por default) */}
+          {musicTrack && (
+            <BackgroundMusic
+              src={getTrackUrl(musicTrack)}
+              baseVolume={backgroundMusicVolume ?? 0.4}
+              ducking={narrationPlaying}
+              startAfterMs={2500}
             />
           )}
 
@@ -743,22 +766,44 @@ function FloorplanMinimap({
 }
 
 // ===== Botón de audio (encaja en la barra lateral) =====
-function SceneAudioButton({ src }: { src: string }) {
+function SceneAudioButton({
+  src,
+  onPlayingChange,
+}: {
+  src: string;
+  // Avisa al padre cuando la narración arranca/para, para que la
+  // música de fondo pueda hacer ducking.
+  onPlayingChange?: (playing: boolean) => void;
+}) {
   const ref = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const audio = ref.current;
     if (!audio) return;
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
+    const onPlay = () => {
+      setPlaying(true);
+      onPlayingChange?.(true);
+    };
+    const onPause = () => {
+      setPlaying(false);
+      onPlayingChange?.(false);
+    };
+    const onEnded = () => {
+      setPlaying(false);
+      onPlayingChange?.(false);
+    };
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
+    audio.addEventListener('ended', onEnded);
     return () => {
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('ended', onEnded);
+      // Al cambiar de escena, asegurarse de soltar el ducking.
+      onPlayingChange?.(false);
     };
-  }, []);
+  }, [onPlayingChange]);
 
   function toggle() {
     const audio = ref.current;
@@ -798,3 +843,118 @@ function SceneAudioButton({ src }: { src: string }) {
   );
 }
 
+// ===== Música de fondo del tour (loop + ducking + mute) =====
+// Componente que vive en la barra lateral derecha. Reproduce una
+// pista en loop con autoplay muteado (cumple políticas browser),
+// y muestra un botón mute/unmute que pulsa los primeros segundos
+// para invitar al cliente a activar el sonido.
+//
+// Ducking: cuando `ducking === true` la música baja a baseVolume×0.15
+// con fade de 200ms; vuelve a baseVolume al soltar.
+function BackgroundMusic({
+  src,
+  baseVolume,
+  ducking,
+  startAfterMs = 0,
+}: {
+  src: string;
+  baseVolume: number;
+  ducking: boolean;
+  // Espera N ms antes de intentar autoplay (deja terminar splash).
+  startAfterMs?: number;
+}) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const fadeRafRef = useRef<number | null>(null);
+  const [muted, setMuted] = useState(true);
+  // Pulso visual del ícono hasta que el cliente interactúa por
+  // primera vez con el botón. Indica "hay música, dale unmute".
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  // Arranca el audio muteado tras el delay (cumple autoplay policy).
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = baseVolume;
+    audio.muted = true;
+    const id = setTimeout(() => {
+      audio.play().catch(() => {});
+    }, startAfterMs);
+    return () => clearTimeout(id);
+  }, [baseVolume, startAfterMs]);
+
+  // Fade del volumen para ducking. Cancela el RAF previo en cada cambio.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const target = ducking ? baseVolume * 0.15 : baseVolume;
+    const start = audio.volume;
+    const startTime = performance.now();
+    const duration = 200;
+
+    if (fadeRafRef.current) cancelAnimationFrame(fadeRafRef.current);
+
+    function step(now: number) {
+      if (!audio) return;
+      const t = Math.min(1, (now - startTime) / duration);
+      audio.volume = start + (target - start) * t;
+      if (t < 1) {
+        fadeRafRef.current = requestAnimationFrame(step);
+      } else {
+        fadeRafRef.current = null;
+      }
+    }
+    fadeRafRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (fadeRafRef.current) cancelAnimationFrame(fadeRafRef.current);
+    };
+  }, [ducking, baseVolume]);
+
+  function toggleMute() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const next = !muted;
+    audio.muted = next;
+    setMuted(next);
+    setHasInteracted(true);
+    // Si el cliente unmutea y el audio aún no arrancó (autoplay bloqueado
+    // pese a estar muted en algunos navegadores), lo dispara ahora.
+    if (!next && audio.paused) {
+      audio.play().catch(() => {});
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={toggleMute}
+        className={`relative flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+          !muted
+            ? 'bg-gold text-black hover:bg-gold-light'
+            : 'bg-white/10 text-white hover:bg-white/20'
+        } ${!hasInteracted && muted ? 'animate-pulse-gold' : ''}`}
+        title={muted ? 'Activar música del tour' : 'Silenciar música del tour'}
+        aria-label={muted ? 'Activar música' : 'Silenciar música'}
+      >
+        {muted ? (
+          // Altavoz tachado
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+            <path d="M16.5 12A4.5 4.5 0 0014 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.96 8.96 0 0021 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 003.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+          </svg>
+        ) : (
+          // Nota musical (música ON)
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+            <path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z" />
+          </svg>
+        )}
+        {/* Punto rojo discreto mientras está muted y aún no han interactuado */}
+        {!hasInteracted && muted && (
+          <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-gold ring-2 ring-black/70" />
+        )}
+      </button>
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={audioRef} src={src} loop preload="auto" />
+    </>
+  );
+}

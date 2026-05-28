@@ -5,7 +5,7 @@
 // portada · logo · link público · datos · acceso · zona peligrosa.
 // ============================================================
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Input, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +17,14 @@ import {
   uploadFloorplan as uploadFloorplanDirect,
   uploadSpecsImage as uploadSpecsImageDirect,
 } from '@/lib/uploads';
+import {
+  MUSIC_LIBRARY,
+  MOOD_LABEL,
+  getLibraryByMood,
+  getTrackById,
+  getTrackUrl,
+  type MusicMood,
+} from '@/lib/musicLibrary';
 import type { Project } from './ProjectEditor';
 
 export function ProjectSettings({
@@ -41,6 +49,8 @@ export function ProjectSettings({
     specs_price: project.specs_price ?? '',
     specs_features: project.specs_features ?? '',
     specs_description: project.specs_description ?? '',
+    background_music_id: project.background_music_id ?? '',
+    background_music_volume: project.background_music_volume ?? 0.4,
   });
   // Modo de acceso: derivado del estado actual del proyecto.
   // El usuario lo cambia con un toggle explícito.
@@ -83,6 +93,8 @@ export function ProjectSettings({
       specs_price: form.specs_price,
       specs_features: form.specs_features,
       specs_description: form.specs_description,
+      background_music_id: form.background_music_id || null,
+      background_music_volume: form.background_music_volume,
     };
     // Si el usuario quiere contraseña y escribió una, la mandamos.
     if (wantPassword && form.password) {
@@ -704,6 +716,18 @@ export function ProjectSettings({
         />
       </div>
 
+      {/* ---------- Card MÚSICA DE FONDO ---------- */}
+      <MusicCard
+        selectedId={form.background_music_id}
+        volume={form.background_music_volume}
+        onChangeId={(id) =>
+          setForm({ ...form, background_music_id: id })
+        }
+        onChangeVolume={(v) =>
+          setForm({ ...form, background_music_volume: v })
+        }
+      />
+
       {/* ---------- Card WHATSAPP ---------- */}
       <div className="card space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
@@ -753,6 +777,194 @@ export function ProjectSettings({
           🗑 Eliminar proyecto
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Card: música de fondo
+// ============================================================
+// Dropdown agrupado por mood + preview ▶ + slider de volumen.
+// La pista preview se reproduce desde /public/music/<file>.mp3
+// (mismo origen, sin CORS). Auto-stop al cambiar de pista.
+function MusicCard({
+  selectedId,
+  volume,
+  onChangeId,
+  onChangeVolume,
+}: {
+  selectedId: string;
+  volume: number;
+  onChangeId: (id: string) => void;
+  onChangeVolume: (v: number) => void;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const byMood = getLibraryByMood();
+  const moods = Object.keys(byMood) as MusicMood[];
+
+  function togglePreview(id: string) {
+    const track = getTrackById(id);
+    if (!track) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (previewId === id && !audio.paused) {
+      audio.pause();
+      setPreviewId(null);
+      return;
+    }
+    audio.src = getTrackUrl(track);
+    audio.volume = Math.min(1, Math.max(0, volume));
+    audio.play()
+      .then(() => setPreviewId(id))
+      .catch(() => {
+        showToast(
+          'error',
+          'No se pudo reproducir. ¿Descargaste los mp3? Ver public/music/README.md'
+        );
+        setPreviewId(null);
+      });
+  }
+
+  // Detectar fin/pausa externa.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onEnded = () => setPreviewId(null);
+    const onPause = () => {
+      if (audio.ended) setPreviewId(null);
+    };
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('pause', onPause);
+    return () => {
+      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('pause', onPause);
+    };
+  }, []);
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+        🎵 Música de fondo (opcional)
+      </h2>
+      <p className="text-[11px] text-text-subtle">
+        Suena en loop durante todo el tour. Cuando el cliente activa la
+        narración de una escena, la música baja de volumen automáticamente
+        y vuelve al terminar. El cliente siempre puede silenciarla con el
+        botón flotante del visor.
+      </p>
+
+      {/* Opción "sin música" */}
+      <button
+        type="button"
+        onClick={() => onChangeId('')}
+        className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left transition-colors ${
+          selectedId === ''
+            ? 'border-text-muted/40 bg-bg-elevated text-text'
+            : 'border-border bg-bg-elevated/50 text-text-muted hover:border-text-subtle'
+        }`}
+      >
+        <span className="text-xs">🔇 Sin música</span>
+        {selectedId === '' && (
+          <span className="text-[10px] uppercase tracking-wider text-text-muted">
+            Activo
+          </span>
+        )}
+      </button>
+
+      {/* Lista agrupada por mood */}
+      <div className="space-y-2">
+        {moods.map((mood) => (
+          <div key={mood} className="space-y-1">
+            <div className="px-1 text-[10px] uppercase tracking-wider text-text-subtle">
+              {MOOD_LABEL[mood]}
+            </div>
+            {byMood[mood].map((track) => {
+              const isSelected = selectedId === track.id;
+              const isPreviewing = previewId === track.id;
+              return (
+                <div
+                  key={track.id}
+                  className={`flex items-center gap-2 rounded-md border px-2 py-1.5 transition-colors ${
+                    isSelected
+                      ? 'border-gold/40 bg-gold/10'
+                      : 'border-border bg-bg-elevated/50 hover:border-text-subtle'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => togglePreview(track.id)}
+                    className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bg-hover text-text-muted hover:text-text"
+                    title={isPreviewing ? 'Pausar preview' : 'Escuchar preview'}
+                    aria-label="Preview"
+                  >
+                    {isPreviewing ? (
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
+                        <rect x="6" y="5" width="4" height="14" rx="1" />
+                        <rect x="14" y="5" width="4" height="14" rx="1" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChangeId(track.id)}
+                    className="flex-1 text-left text-xs"
+                  >
+                    {track.title}
+                  </button>
+                  {isSelected && (
+                    <span className="text-[10px] uppercase tracking-wider text-gold">
+                      ✓ Elegida
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Slider de volumen base — solo si hay pista elegida */}
+      {selectedId && (
+        <div className="space-y-1 pt-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-text-muted">Volumen base</span>
+            <span className="text-text">{Math.round(volume * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min="0.1"
+            max="0.8"
+            step="0.05"
+            value={volume}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              onChangeVolume(v);
+              if (audioRef.current) audioRef.current.volume = v;
+            }}
+            className="w-full accent-gold"
+          />
+          <p className="text-[10px] text-text-subtle">
+            Cuando suena la narración baja a {Math.round(volume * 15)}% y vuelve
+            a {Math.round(volume * 100)}% al terminar.
+          </p>
+        </div>
+      )}
+
+      {/* Aviso si los archivos no están */}
+      {selectedId && MUSIC_LIBRARY.length > 0 && (
+        <p className="rounded-md border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-[10px] text-blue-200">
+          💡 ¿No suena la preview? Corre <code className="font-mono">pwsh ./scripts/download-music.ps1</code> para
+          descargar los mp3 a <code className="font-mono">public/music/</code>.
+        </p>
+      )}
+
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={audioRef} preload="none" />
     </div>
   );
 }

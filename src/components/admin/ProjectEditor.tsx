@@ -73,6 +73,9 @@ export type Project = {
   whatsapp_message: string | null;
   // Color de marca opcional — anula el dorado global.
   brand_color: string | null;
+  // Música de fondo: id de pista de la biblioteca + volumen base.
+  background_music_id: string | null;
+  background_music_volume: number | null;
   last_viewed_at: string | null;
   created_at: string;
 };

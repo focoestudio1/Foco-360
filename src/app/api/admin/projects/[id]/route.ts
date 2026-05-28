@@ -147,6 +147,17 @@ export async function PATCH(
   if ('specs_description' in body) {
     update.specs_description = body.specs_description?.toString().trim() || null;
   }
+  // Música de fondo: id de pista en la biblioteca + volumen base.
+  if ('background_music_id' in body) {
+    update.background_music_id =
+      body.background_music_id?.toString().trim() || null;
+  }
+  if ('background_music_volume' in body) {
+    const v = Number(body.background_music_volume);
+    if (Number.isFinite(v) && v >= 0 && v <= 1) {
+      update.background_music_volume = v;
+    }
+  }
 
   // Contraseña:
   //   - body.password = "xxxxxxxx"  → setea/cambia contraseña

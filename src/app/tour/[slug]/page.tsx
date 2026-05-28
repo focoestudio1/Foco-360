@@ -79,7 +79,7 @@ export default async function TourPage({
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color, floorplan_url, specs_image_url, specs_title, specs_price, specs_features, specs_description')
+    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color, floorplan_url, specs_image_url, specs_title, specs_price, specs_features, specs_description, background_music_id, background_music_volume')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -214,6 +214,12 @@ export default async function TourPage({
         features: project.specs_features,
         description: project.specs_description,
       }}
+      backgroundMusicId={project.background_music_id}
+      backgroundMusicVolume={
+        project.background_music_volume != null
+          ? Number(project.background_music_volume)
+          : null
+      }
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,
