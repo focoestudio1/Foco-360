@@ -148,3 +148,9 @@ export function buildSpecsKey(slug: string, filename: string): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `projects/${slug}/specs-${Date.now()}-${safe}`;
 }
+
+// Key para video de bienvenida del agente.
+export function buildWelcomeKey(slug: string, filename: string): string {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `projects/${slug}/welcome-${Date.now()}-${safe}`;
+}

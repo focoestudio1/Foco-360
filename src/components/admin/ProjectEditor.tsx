@@ -76,6 +76,9 @@ export type Project = {
   // Música de fondo: id de pista de la biblioteca + volumen base.
   background_music_id: string | null;
   background_music_volume: number | null;
+  // Video de bienvenida del agente (opcional).
+  welcome_video_url: string | null;
+  welcome_video_signed_url: string | null;
   last_viewed_at: string | null;
   created_at: string;
 };

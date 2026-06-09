@@ -13,12 +13,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getAdminUser } from '@/lib/auth';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
-import { buildAudioKey, buildCoverKey, buildFloorplanKey, buildLogoKey, buildSceneKey, buildSpecsKey, getSignedPutUrl } from '@/lib/r2';
+import { buildAudioKey, buildCoverKey, buildFloorplanKey, buildLogoKey, buildSceneKey, buildSpecsKey, buildWelcomeKey, getSignedPutUrl } from '@/lib/r2';
 
 export const dynamic = 'force-dynamic';
 
-// Tamaño máximo aceptado (50 MB). El SDK no lo enforce, lo validamos aquí.
+// Tamaño máximo aceptado para imágenes/audio (50 MB).
 const MAX_SIZE = 50 * 1024 * 1024;
+// Videos pueden ser un poco más pesados (100 MB para 60s en 1080p).
+const MAX_SIZE_VIDEO = 100 * 1024 * 1024;
 
 export async function POST(
   req: NextRequest,
@@ -43,7 +45,8 @@ export async function POST(
     kind !== 'logo' &&
     kind !== 'audio' &&
     kind !== 'floorplan' &&
-    kind !== 'specs'
+    kind !== 'specs' &&
+    kind !== 'welcome'
   ) {
     return NextResponse.json({ error: 'kind inválido' }, { status: 400 });
   }
@@ -51,10 +54,18 @@ export async function POST(
   // Validación de tipo MIME por kind.
   const isImage = contentType.startsWith('image/');
   const isAudio = contentType.startsWith('audio/');
+  const isVideo = contentType.startsWith('video/');
   if (kind === 'audio') {
     if (!filename || !isAudio) {
       return NextResponse.json(
         { error: 'Archivo de audio inválido (MP3, M4A, OGG, WAV)' },
+        { status: 400 }
+      );
+    }
+  } else if (kind === 'welcome') {
+    if (!filename || !isVideo) {
+      return NextResponse.json(
+        { error: 'Archivo de video inválido (MP4, WebM, MOV)' },
         { status: 400 }
       );
     }
@@ -63,9 +74,10 @@ export async function POST(
       return NextResponse.json({ error: 'Archivo inválido' }, { status: 400 });
     }
   }
-  if (size > MAX_SIZE) {
+  const limit = kind === 'welcome' ? MAX_SIZE_VIDEO : MAX_SIZE;
+  if (size > limit) {
     return NextResponse.json(
-      { error: `Archivo demasiado grande (>${MAX_SIZE / 1024 / 1024} MB)` },
+      { error: `Archivo demasiado grande (>${limit / 1024 / 1024} MB)` },
       { status: 413 }
     );
   }
@@ -91,6 +103,8 @@ export async function POST(
       ? buildFloorplanKey(project.slug, filename)
       : kind === 'specs'
       ? buildSpecsKey(project.slug, filename)
+      : kind === 'welcome'
+      ? buildWelcomeKey(project.slug, filename)
       : buildSceneKey(project.slug, filename);
 
   const uploadUrl = await getSignedPutUrl(key, contentType);

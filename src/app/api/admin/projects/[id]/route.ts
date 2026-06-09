@@ -62,6 +62,9 @@ export async function GET(
   const specs_image_signed_url = project.specs_image_url
     ? await getSignedReadUrl(project.specs_image_url).catch(() => null)
     : null;
+  const welcome_video_signed_url = project.welcome_video_url
+    ? await getSignedReadUrl(project.welcome_video_url).catch(() => null)
+    : null;
 
   const scenesSigned = await Promise.all(
     (scenes ?? []).map(async (s) => ({
@@ -85,6 +88,7 @@ export async function GET(
       logo_signed_url,
       floorplan_signed_url,
       specs_image_signed_url,
+      welcome_video_signed_url,
     },
     scenes: scenesSigned,
     hotspots,

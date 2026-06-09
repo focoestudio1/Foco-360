@@ -68,6 +68,7 @@ export function TourViewer({
   specs,
   backgroundMusicId,
   backgroundMusicVolume,
+  welcomeVideoUrl,
 }: {
   slug: string;
   projectName: string;
@@ -100,6 +101,8 @@ export function TourViewer({
   // no se renderiza el componente.
   backgroundMusicId?: string | null;
   backgroundMusicVolume?: number | null;
+  // Video de bienvenida del agente (opcional). URL firmada del MP4.
+  welcomeVideoUrl?: string | null;
 }) {
   // Color final usado en hotspots, acentos.
   const color = brandColor || '#d4af37';
@@ -133,6 +136,45 @@ export function TourViewer({
   // está sonando, BackgroundMusic baja su volumen automáticamente.
   const musicTrack = getTrackById(backgroundMusicId);
   const [narrationPlaying, setNarrationPlaying] = useState(false);
+
+  // Recorrido automático: cuando está activo, avanza por las escenas
+  // en orden. Si la escena tiene narración, espera a que termine; si
+  // no, espera 8s antes de saltar a la siguiente.
+  const [isAutoTour, setIsAutoTour] = useState(false);
+  const autoTourTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const advanceTour = useCallback(() => {
+    const idx = scenes.findIndex((s) => s.id === activeId);
+    const next = scenes[idx + 1];
+    if (next) {
+      setActiveId(next.id);
+    } else {
+      // Terminamos. Vuelve a la primera y apaga el modo auto.
+      setIsAutoTour(false);
+      if (scenes[0]) setActiveId(scenes[0].id);
+    }
+  }, [scenes, activeId]);
+
+  // Timer de 8s cuando la escena actual NO tiene narración.
+  useEffect(() => {
+    if (autoTourTimerRef.current) {
+      clearTimeout(autoTourTimerRef.current);
+      autoTourTimerRef.current = null;
+    }
+    if (!isAutoTour) return;
+    const current = scenes.find((s) => s.id === activeId);
+    if (!current) return;
+    // Si tiene audio, el componente de audio se encarga (vía onEnded).
+    if (current.audioUrl) return;
+    // Sin audio: timer fijo.
+    autoTourTimerRef.current = setTimeout(advanceTour, 8000);
+    return () => {
+      if (autoTourTimerRef.current) {
+        clearTimeout(autoTourTimerRef.current);
+        autoTourTimerRef.current = null;
+      }
+    };
+  }, [isAutoTour, activeId, scenes, advanceTour]);
 
   // Handle del visor Pannellum (para Home, VR, etc).
   const pnRef = useRef<PannellumHandle | null>(null);
@@ -290,6 +332,23 @@ export function TourViewer({
           />
         )}
 
+        {/* Hint visual: mano animada de "arrastrar" los primeros 4s.
+            Solo aparece en la primera escena del tour para no molestar. */}
+        {!isPreview && <SwipeHint />}
+
+        {/* Tutorial overlay primera visita: 3 tips animados. Se guarda
+            en localStorage para no mostrarse de nuevo. */}
+        {!isPreview && <FirstVisitTutorial color={color} />}
+
+        {/* Video de bienvenida del agente. Modal que aparece una vez. */}
+        {!isPreview && welcomeVideoUrl && (
+          <WelcomeVideoModal
+            src={welcomeVideoUrl}
+            slug={slug}
+            color={color}
+          />
+        )}
+
         {/* Overlay logo: ubicado bajo la barra lateral derecha, más chico.
             Si el proyecto tiene logo propio lo usa, sino el global. */}
         <div className="pointer-events-none absolute right-4 bottom-4 z-20">
@@ -414,12 +473,62 @@ export function TourViewer({
           {/* Separador */}
           <div className="my-1 h-px w-6 bg-white/15" />
 
+          {/* Recorrido guiado: solo si hay 2+ escenas */}
+          {scenes.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setIsAutoTour((v) => !v)}
+              className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                isAutoTour
+                  ? 'bg-gold text-black hover:bg-gold-light animate-pulse-gold'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+              title={
+                isAutoTour
+                  ? 'Detener recorrido guiado'
+                  : 'Comenzar recorrido guiado (avanza solo por las escenas)'
+              }
+              aria-label="Recorrido guiado"
+            >
+              {isAutoTour ? (
+                // Ícono stop
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                  <rect x="6" y="6" width="12" height="12" rx="1.5" />
+                </svg>
+              ) : (
+                // Ícono "play en círculo" (auto-tour)
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
+                </svg>
+              )}
+            </button>
+          )}
+
+          {/* Skip a la siguiente escena (solo si auto-tour activo) */}
+          {isAutoTour && (
+            <button
+              type="button"
+              onClick={advanceTour}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              title="Saltar a la siguiente escena"
+              aria-label="Siguiente escena"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                <polygon points="5,4 15,12 5,20" />
+                <rect x="17" y="4" width="2.5" height="16" rx="0.5" />
+              </svg>
+            </button>
+          )}
+
           {/* Audio de la escena (si la escena tiene audio cargado) */}
           {activeScene?.audioUrl && (
             <SceneAudioButton
               key={activeScene.id}
               src={activeScene.audioUrl}
               onPlayingChange={setNarrationPlaying}
+              autoStart={isAutoTour}
+              onEnded={isAutoTour ? advanceTour : undefined}
             />
           )}
 
@@ -769,14 +878,32 @@ function FloorplanMinimap({
 function SceneAudioButton({
   src,
   onPlayingChange,
+  autoStart = false,
+  onEnded,
 }: {
   src: string;
   // Avisa al padre cuando la narración arranca/para, para que la
   // música de fondo pueda hacer ducking.
   onPlayingChange?: (playing: boolean) => void;
+  // En modo auto-tour, arranca solo al montar.
+  autoStart?: boolean;
+  // Callback cuando el audio termina naturalmente (usado por auto-tour).
+  onEnded?: () => void;
 }) {
   const ref = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
+
+  // Auto-start cuando se monta en modo auto-tour.
+  useEffect(() => {
+    if (!autoStart) return;
+    const audio = ref.current;
+    if (!audio) return;
+    // Pequeño delay para que cargue metadata primero.
+    const t = setTimeout(() => {
+      audio.play().catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, [autoStart]);
 
   useEffect(() => {
     const audio = ref.current;
@@ -789,21 +916,22 @@ function SceneAudioButton({
       setPlaying(false);
       onPlayingChange?.(false);
     };
-    const onEnded = () => {
+    const onEndedHandler = () => {
       setPlaying(false);
       onPlayingChange?.(false);
+      onEnded?.();
     };
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
-    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('ended', onEndedHandler);
     return () => {
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
-      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('ended', onEndedHandler);
       // Al cambiar de escena, asegurarse de soltar el ducking.
       onPlayingChange?.(false);
     };
-  }, [onPlayingChange]);
+  }, [onPlayingChange, onEnded]);
 
   function toggle() {
     const audio = ref.current;
@@ -956,5 +1084,370 @@ function BackgroundMusic({
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={audioRef} src={src} loop preload="auto" />
     </>
+  );
+}
+
+// ===== Hint visual de "arrastrar para mirar" =====
+// Aparece centrado en el visor los primeros 4 segundos con una
+// mano animada haciendo gesto de swipe horizontal + texto.
+// Desaparece al primer toque/click en el visor o tras 4s.
+function SwipeHint() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    // Timer de 4s.
+    const t = setTimeout(() => setVisible(false), 4000);
+    // También oculta al primer pointerdown en cualquier parte.
+    const onInteract = () => setVisible(false);
+    window.addEventListener('pointerdown', onInteract, { once: true });
+    window.addEventListener('touchstart', onInteract, { once: true });
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('pointerdown', onInteract);
+      window.removeEventListener('touchstart', onInteract);
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-500"
+      aria-hidden="true"
+    >
+      <div className="flex flex-col items-center gap-3 rounded-2xl bg-black/55 px-5 py-4 backdrop-blur-md">
+        {/* Mano animada con swipe horizontal */}
+        <div className="relative h-12 w-24 overflow-visible">
+          <svg
+            viewBox="0 0 48 48"
+            className="absolute top-0 h-12 w-12 animate-swipe-hand"
+            fill="none"
+            stroke="#d4af37"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* Mano simplificada */}
+            <path d="M14 22V12a3 3 0 0 1 6 0v10" />
+            <path d="M20 22v-2a3 3 0 0 1 6 0v6" />
+            <path d="M26 26v-3a3 3 0 0 1 6 0v8" />
+            <path d="M32 31v-3a3 3 0 0 1 5 1l-1 9c-1 5-4 8-9 8h-2c-3 0-6-1-8-4l-4-7c-1-2 1-4 3-3l3 2V14" />
+          </svg>
+          {/* Flechas decorativas */}
+          <svg
+            viewBox="0 0 24 24"
+            className="absolute right-0 top-3 h-6 w-6 animate-pulse"
+            fill="none"
+            stroke="#d4af37"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ opacity: 0.6 }}
+          >
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+          <svg
+            viewBox="0 0 24 24"
+            className="absolute left-0 top-3 h-6 w-6 animate-pulse"
+            fill="none"
+            stroke="#d4af37"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ opacity: 0.6 }}
+          >
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+        </div>
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/90">
+          Arrastra para mirar
+        </p>
+      </div>
+
+      <style jsx>{`
+        @keyframes swipeHand {
+          0% {
+            transform: translateX(-12px) rotate(-8deg);
+            opacity: 0.4;
+          }
+          50% {
+            transform: translateX(40px) rotate(8deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(-12px) rotate(-8deg);
+            opacity: 0.4;
+          }
+        }
+        :global(.animate-swipe-hand) {
+          animation: swipeHand 1.8s ease-in-out infinite;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ===== Tutorial overlay primera visita =====
+// 3 slides con tips animados que explican cómo usar el tour.
+// Se guarda flag en localStorage para no mostrarse otra vez.
+// Aparece centrado con backdrop blur. Botón ESC también cierra.
+const TUTORIAL_STORAGE_KEY = 'foco360-tutorial-seen';
+
+const TUTORIAL_SLIDES = [
+  {
+    title: 'Mira en 360°',
+    body: 'Arrastra con el dedo o el mouse para girar y ver toda la habitación.',
+    icon: '🌐',
+  },
+  {
+    title: 'Camina entre habitaciones',
+    body: 'Toca los círculos dorados que aparecen en el espacio para teletransportarte a otra escena.',
+    icon: '🚪',
+  },
+  {
+    title: 'Más herramientas',
+    body: 'En la barra derecha tienes pantalla completa, música, narración, compartir y contacto.',
+    icon: '🎛',
+  },
+] as const;
+
+function FirstVisitTutorial({ color }: { color: string }) {
+  const [show, setShow] = useState(false);
+  const [slide, setSlide] = useState(0);
+
+  useEffect(() => {
+    // SSR-safe: solo en client.
+    if (typeof window === 'undefined') return;
+    try {
+      const seen = window.localStorage.getItem(TUTORIAL_STORAGE_KEY);
+      if (!seen) {
+        // Aparece después del splash (2.5s + un pelín para que respire).
+        const t = setTimeout(() => setShow(true), 2800);
+        return () => clearTimeout(t);
+      }
+    } catch {
+      // localStorage bloqueado (modo incógnito estricto). Lo mostramos igual.
+      const t = setTimeout(() => setShow(true), 2800);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  // Cerrar con ESC
+  useEffect(() => {
+    if (!show) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show]);
+
+  function close() {
+    try {
+      window.localStorage.setItem(TUTORIAL_STORAGE_KEY, '1');
+    } catch {}
+    setShow(false);
+  }
+
+  if (!show) return null;
+
+  const current = TUTORIAL_SLIDES[slide];
+  const isLast = slide === TUTORIAL_SLIDES.length - 1;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm animate-fade-in"
+      onClick={close}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tutorial del tour"
+    >
+      <div
+        className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-bg-card p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        style={{ borderTop: `3px solid ${color}` }}
+      >
+        {/* Cerrar (top-right) */}
+        <button
+          type="button"
+          onClick={close}
+          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-text-muted hover:bg-bg-hover hover:text-text"
+          aria-label="Cerrar tutorial"
+        >
+          ✕
+        </button>
+
+        {/* Icono grande */}
+        <div
+          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
+          style={{
+            background: `${color}15`,
+            border: `1px solid ${color}40`,
+          }}
+        >
+          {current.icon}
+        </div>
+
+        {/* Texto */}
+        <h3 className="mb-2 text-center font-display text-xl font-medium tracking-wide text-text">
+          {current.title}
+        </h3>
+        <p className="mb-6 text-center text-sm leading-relaxed text-text-muted">
+          {current.body}
+        </p>
+
+        {/* Dots indicador */}
+        <div className="mb-5 flex items-center justify-center gap-2">
+          {TUTORIAL_SLIDES.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setSlide(i)}
+              className="h-1.5 rounded-full transition-all"
+              style={{
+                width: i === slide ? 20 : 6,
+                background: i === slide ? color : 'rgba(255,255,255,0.25)',
+              }}
+              aria-label={`Tip ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* Botones */}
+        <div className="flex gap-2">
+          {slide > 0 && (
+            <button
+              type="button"
+              onClick={() => setSlide((s) => s - 1)}
+              className="flex-1 rounded-md border border-border bg-bg-elevated px-4 py-2 text-sm text-text-muted hover:bg-bg-hover"
+            >
+              ← Anterior
+            </button>
+          )}
+          {!isLast ? (
+            <button
+              type="button"
+              onClick={() => setSlide((s) => s + 1)}
+              className="flex-1 rounded-md px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
+              style={{ background: color }}
+            >
+              Siguiente →
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={close}
+              className="flex-1 rounded-md px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
+              style={{ background: color }}
+            >
+              ¡Entendido!
+            </button>
+          )}
+        </div>
+
+        <p className="mt-3 text-center text-[10px] uppercase tracking-wider text-text-subtle">
+          Solo se muestra una vez
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ===== Modal de video de bienvenida =====
+// Aparece al cargar el tour si el proyecto tiene un video subido.
+// Se muestra una sola vez por dispositivo y por slug (localStorage).
+// El cliente puede saltarlo con "Comenzar tour" o esperar a que termine
+// el video (botón cambia a "Cerrar"). Tiene su propio botón de mute.
+function WelcomeVideoModal({
+  src,
+  slug,
+  color,
+}: {
+  src: string;
+  slug: string;
+  color: string;
+}) {
+  const storageKey = `foco360-welcome-seen-${slug}`;
+  const [show, setShow] = useState(false);
+  const [ended, setEnded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const seen = window.localStorage.getItem(storageKey);
+      if (!seen) {
+        // Aparece DESPUÉS del splash y un poco más (3.5s) para no
+        // amontonarse con el tutorial. Si el tutorial está visible,
+        // el cliente lo cierra primero y luego ve este modal.
+        const t = setTimeout(() => setShow(true), 3500);
+        return () => clearTimeout(t);
+      }
+    } catch {
+      const t = setTimeout(() => setShow(true), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [storageKey]);
+
+  // Intenta autoplay con sonido cuando se muestra. Si el navegador
+  // lo bloquea (suele pasar), intenta muteado para que al menos arranque.
+  useEffect(() => {
+    if (!show) return;
+    const v = videoRef.current;
+    if (!v) return;
+    v.play().catch(() => {
+      v.muted = true;
+      v.play().catch(() => {});
+    });
+  }, [show]);
+
+  function close() {
+    try {
+      window.localStorage.setItem(storageKey, '1');
+    } catch {}
+    setShow(false);
+  }
+
+  if (!show) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-md animate-fade-in"
+      onClick={close}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Video de bienvenida"
+    >
+      <div
+        className="relative w-full max-w-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <video
+          ref={videoRef}
+          src={src}
+          controls
+          playsInline
+          className="w-full rounded-lg shadow-2xl"
+          style={{ border: `2px solid ${color}40` }}
+          onEnded={() => setEnded(true)}
+        />
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={close}
+            className="rounded-md px-6 py-2.5 text-sm font-medium text-black transition-opacity hover:opacity-90"
+            style={{ background: color }}
+          >
+            {ended ? '✓ Cerrar' : 'Saltar y comenzar tour →'}
+          </button>
+        </div>
+        <p className="mt-2 text-center text-[10px] uppercase tracking-wider text-white/50">
+          Solo se muestra una vez
+        </p>
+      </div>
+    </div>
   );
 }

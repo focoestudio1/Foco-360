@@ -79,7 +79,7 @@ export default async function TourPage({
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color, floorplan_url, specs_image_url, specs_title, specs_price, specs_features, specs_description, background_music_id, background_music_volume')
+    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color, floorplan_url, specs_image_url, specs_title, specs_price, specs_features, specs_description, background_music_id, background_music_volume, welcome_video_url')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -193,6 +193,9 @@ export default async function TourPage({
   const specsImageUrl = project.specs_image_url
     ? await getSignedReadUrl(project.specs_image_url).catch(() => null)
     : null;
+  const welcomeVideoUrl = project.welcome_video_url
+    ? await getSignedReadUrl(project.welcome_video_url).catch(() => null)
+    : null;
 
   return (
     <TourViewer
@@ -220,6 +223,7 @@ export default async function TourPage({
           ? Number(project.background_music_volume)
           : null
       }
+      welcomeVideoUrl={welcomeVideoUrl}
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,

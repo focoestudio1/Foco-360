@@ -12,7 +12,7 @@
 
 import imageCompression from 'browser-image-compression';
 
-export type UploadKind = 'cover' | 'scene' | 'logo' | 'audio' | 'floorplan' | 'specs';
+export type UploadKind = 'cover' | 'scene' | 'logo' | 'audio' | 'floorplan' | 'specs' | 'welcome';
 
 export type UploadProgress = {
   // Fase actual: comprimir o subir.
@@ -34,6 +34,7 @@ const THRESHOLDS_MB: Record<UploadKind, number> = {
   audio: Infinity,
   floorplan: 2,
   specs: 3,
+  welcome: Infinity, // Videos no se comprimen en browser.
 };
 
 // Comprime si hace falta. Mantiene calidad visual alta:
@@ -280,6 +281,30 @@ export async function uploadLogo(
   if (!confirm.ok) {
     const err = await confirm.json().catch(() => ({}));
     throw new Error(err.error || 'Error al confirmar el logo');
+  }
+  return confirm.json();
+}
+
+// API pública: sube un video de bienvenida del agente. No se comprime.
+// El admin debe darle un MP4 ya optimizado (máx 100 MB, idealmente 720p).
+export async function uploadWelcomeVideo(
+  projectId: string,
+  file: File,
+  onProgress?: (p: UploadProgress) => void
+): Promise<{ key: string }> {
+  const { uploadUrl, key } = await getSignedUrl(projectId, 'welcome', file);
+  await putWithProgress(uploadUrl, file, onProgress);
+  const confirm = await fetch(
+    `/api/admin/projects/${projectId}/welcome-video`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    }
+  );
+  if (!confirm.ok) {
+    const err = await confirm.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al confirmar el video');
   }
   return confirm.json();
 }

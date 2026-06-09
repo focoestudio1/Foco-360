@@ -118,9 +118,10 @@ export function PannellumViewer({
         hfov: 100,
         minHfov: 50,
         maxHfov: 120,
-        // Rota lentamente cuando el usuario no interactúa 5 segundos.
+        // Rota lentamente cuando el usuario no interactúa 2 segundos.
+        // El delay corto hace evidente que es 360° apenas carga.
         autoRotate: -2,
-        autoRotateInactivityDelay: 5000,
+        autoRotateInactivityDelay: 2000,
         // Mensajes customizados: NUNCA mostrar la URL del archivo.
         // Por defecto Pannellum imprime "The file <URL>..." en errores
         // y la barra de carga; eso filtraría la firma R2.

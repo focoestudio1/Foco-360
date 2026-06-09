@@ -16,6 +16,7 @@ import {
   uploadLogo as uploadLogoDirect,
   uploadFloorplan as uploadFloorplanDirect,
   uploadSpecsImage as uploadSpecsImageDirect,
+  uploadWelcomeVideo as uploadWelcomeVideoDirect,
 } from '@/lib/uploads';
 import {
   MUSIC_LIBRARY,
@@ -70,11 +71,14 @@ export function ProjectSettings({
   const [specsUploading, setSpecsUploading] = useState(false);
   const [specsPct, setSpecsPct] = useState(0);
   const [specsPhase, setSpecsPhase] = useState<'compressing' | 'uploading'>('compressing');
+  const [welcomeUploading, setWelcomeUploading] = useState(false);
+  const [welcomePct, setWelcomePct] = useState(0);
 
   const coverRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLInputElement>(null);
   const floorRef = useRef<HTMLInputElement>(null);
   const specsRef = useRef<HTMLInputElement>(null);
+  const welcomeRef = useRef<HTMLInputElement>(null);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
   const tourLink = `${siteUrl}/tour/${project.slug}`;
@@ -224,6 +228,45 @@ export function ProjectSettings({
       setFloorUploading(false);
       setFloorPct(0);
     }
+  }
+
+  async function uploadWelcomeFile(file: File) {
+    if (!file.type.startsWith('video/')) {
+      showToast('error', 'Selecciona un video (MP4, WebM, MOV)');
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      showToast('error', 'El video pesa más de 100 MB. Comprímelo antes.');
+      return;
+    }
+    setWelcomeUploading(true);
+    setWelcomePct(0);
+    try {
+      await uploadWelcomeVideoDirect(project.id, file, (p) => {
+        setWelcomePct(p.pct);
+      });
+      showToast('success', 'Video de bienvenida actualizado');
+      onUpdated();
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
+      setWelcomeUploading(false);
+      setWelcomePct(0);
+    }
+  }
+
+  async function removeWelcomeVideo() {
+    if (!confirm('¿Quitar el video de bienvenida?')) return;
+    const res = await fetch(
+      `/api/admin/projects/${project.id}/welcome-video`,
+      { method: 'DELETE' }
+    );
+    if (!res.ok) {
+      showToast('error', 'Error al quitar video');
+      return;
+    }
+    showToast('success', 'Video quitado');
+    onUpdated();
   }
 
   async function removeFloorplan() {
@@ -714,6 +757,69 @@ export function ProjectSettings({
         <CopyLinkButton
           url={`<iframe src="${tourLink}?embed=1" width="100%" height="600" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>`}
         />
+      </div>
+
+      {/* ---------- Card VIDEO DE BIENVENIDA ---------- */}
+      <div className="card space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          🎥 Video de bienvenida (opcional)
+        </h2>
+        <p className="text-[11px] text-text-subtle">
+          Video corto (15-60s) del agente inmobiliario o un avatar AI dando
+          la bienvenida y explicando el inmueble. Aparece en un modal al abrir
+          el tour, una sola vez por visitante. Recomendado MP4 720p, máx 100 MB.
+        </p>
+
+        {project.welcome_video_signed_url ? (
+          <video
+            src={project.welcome_video_signed_url}
+            controls
+            className="aspect-video w-full rounded-md border border-border bg-black"
+          />
+        ) : (
+          <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-border text-[11px] text-text-subtle">
+            Sin video
+          </div>
+        )}
+
+        <input
+          ref={welcomeRef}
+          type="file"
+          accept="video/mp4,video/webm,video/quicktime"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadWelcomeFile(f);
+            e.target.value = '';
+          }}
+        />
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => welcomeRef.current?.click()}
+            loading={welcomeUploading}
+            className="flex-1"
+          >
+            {welcomeUploading
+              ? `Subiendo… ${welcomePct}%`
+              : project.welcome_video_url
+              ? 'Cambiar video'
+              : 'Subir video'}
+          </Button>
+          {project.welcome_video_url && (
+            <Button variant="ghost" onClick={removeWelcomeVideo}>
+              Quitar
+            </Button>
+          )}
+        </div>
+        {welcomeUploading && (
+          <div className="h-1 w-full overflow-hidden rounded-full bg-bg-hover">
+            <div
+              className="h-full bg-gold transition-all"
+              style={{ width: `${welcomePct}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {/* ---------- Card MÚSICA DE FONDO ---------- */}
