@@ -1097,16 +1097,23 @@ function BackgroundMusic({
 //  - Texto con escala pulsante
 // Desaparece al primer toque/click en el visor o tras 5s.
 function SwipeHint() {
-  const [visible, setVisible] = useState(true);
+  // Aparece DESPUÉS del splash (2.5s) para que el cliente lo vea con
+  // claridad sobre la escena ya cargada. Dura 6s más, así que el
+  // hint está visible entre el segundo 2.5 y 8.5 del tour.
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Timer de 5s — un pelín más largo para que se vea bien.
-    const t = setTimeout(() => setVisible(false), 5000);
+    // Espera a que termine el splash.
+    const tShow = setTimeout(() => setVisible(true), 2500);
+    // Auto-cierre 6s después de aparecer.
+    const tHide = setTimeout(() => setVisible(false), 8500);
+    // También oculta al primer pointerdown.
     const onInteract = () => setVisible(false);
     window.addEventListener('pointerdown', onInteract, { once: true });
     window.addEventListener('touchstart', onInteract, { once: true });
     return () => {
-      clearTimeout(t);
+      clearTimeout(tShow);
+      clearTimeout(tHide);
       window.removeEventListener('pointerdown', onInteract);
       window.removeEventListener('touchstart', onInteract);
     };
@@ -1186,7 +1193,7 @@ function SwipeHint() {
 
       <style jsx>{`
         .swipe-hint-root {
-          animation: swipeFadeOut 0.5s ease-in 4.5s forwards;
+          animation: swipeFadeOut 0.6s ease-in 5.4s forwards;
         }
         @keyframes swipeFadeOut {
           to { opacity: 0; }
@@ -1338,13 +1345,14 @@ function FirstVisitTutorial({ color }: { color: string }) {
     try {
       const seen = window.localStorage.getItem(TUTORIAL_STORAGE_KEY);
       if (!seen) {
-        // Aparece después del splash (2.5s + un pelín para que respire).
-        const t = setTimeout(() => setShow(true), 2800);
+        // Aparece DESPUÉS del SwipeHint (que dura hasta los 8.5s),
+        // así el cliente primero ve la mano sola y después el tutorial.
+        const t = setTimeout(() => setShow(true), 9000);
         return () => clearTimeout(t);
       }
     } catch {
       // localStorage bloqueado (modo incógnito estricto). Lo mostramos igual.
-      const t = setTimeout(() => setShow(true), 2800);
+      const t = setTimeout(() => setShow(true), 9000);
       return () => clearTimeout(t);
     }
   }, []);
@@ -1495,14 +1503,14 @@ function WelcomeVideoModal({
     try {
       const seen = window.localStorage.getItem(storageKey);
       if (!seen) {
-        // Aparece DESPUÉS del splash y un poco más (3.5s) para no
-        // amontonarse con el tutorial. Si el tutorial está visible,
-        // el cliente lo cierra primero y luego ve este modal.
-        const t = setTimeout(() => setShow(true), 3500);
+        // Aparece DESPUÉS del SwipeHint (8.5s) para no amontonarse.
+        // Tiene z-50 vs tutorial z-40, así que si ambos están visibles
+        // el welcome queda arriba.
+        const t = setTimeout(() => setShow(true), 9000);
         return () => clearTimeout(t);
       }
     } catch {
-      const t = setTimeout(() => setShow(true), 3500);
+      const t = setTimeout(() => setShow(true), 9000);
       return () => clearTimeout(t);
     }
   }, [storageKey]);
