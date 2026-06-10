@@ -1088,16 +1088,20 @@ function BackgroundMusic({
 }
 
 // ===== Hint visual de "arrastrar para mirar" =====
-// Aparece centrado en el visor los primeros 4 segundos con una
-// mano animada haciendo gesto de swipe horizontal + texto.
-// Desaparece al primer toque/click en el visor o tras 4s.
+// Aparece centrado en el visor los primeros 5 segundos con una
+// mano grande animada haciendo gesto de swipe horizontal:
+//  - Trail dorado de estela detrás del dedo
+//  - Glow pulsante dorado debajo
+//  - Ondas concéntricas saliendo del dedo
+//  - Flechas grandes a los lados
+//  - Texto con escala pulsante
+// Desaparece al primer toque/click en el visor o tras 5s.
 function SwipeHint() {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    // Timer de 4s.
-    const t = setTimeout(() => setVisible(false), 4000);
-    // También oculta al primer pointerdown en cualquier parte.
+    // Timer de 5s — un pelín más largo para que se vea bien.
+    const t = setTimeout(() => setVisible(false), 5000);
     const onInteract = () => setVisible(false);
     window.addEventListener('pointerdown', onInteract, { once: true });
     window.addEventListener('touchstart', onInteract, { once: true });
@@ -1112,77 +1116,188 @@ function SwipeHint() {
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-500"
+      className="swipe-hint-root pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
       aria-hidden="true"
     >
-      <div className="flex flex-col items-center gap-3 rounded-2xl bg-black/55 px-5 py-4 backdrop-blur-md">
-        {/* Mano animada con swipe horizontal */}
-        <div className="relative h-12 w-24 overflow-visible">
-          <svg
-            viewBox="0 0 48 48"
-            className="absolute top-0 h-12 w-12 animate-swipe-hand"
-            fill="none"
-            stroke="#d4af37"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {/* Mano simplificada */}
-            <path d="M14 22V12a3 3 0 0 1 6 0v10" />
-            <path d="M20 22v-2a3 3 0 0 1 6 0v6" />
-            <path d="M26 26v-3a3 3 0 0 1 6 0v8" />
-            <path d="M32 31v-3a3 3 0 0 1 5 1l-1 9c-1 5-4 8-9 8h-2c-3 0-6-1-8-4l-4-7c-1-2 1-4 3-3l3 2V14" />
-          </svg>
-          {/* Flechas decorativas */}
+      <div className="flex flex-col items-center gap-5">
+        {/* Caja con mano animada */}
+        <div className="relative h-32 w-72 overflow-visible">
+          {/* Glow dorado de fondo que pulsa */}
+          <div className="swipe-glow absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+
+          {/* Flecha IZQUIERDA grande */}
           <svg
             viewBox="0 0 24 24"
-            className="absolute right-0 top-3 h-6 w-6 animate-pulse"
+            className="swipe-arrow-left absolute left-0 top-1/2 h-12 w-12 -translate-y-1/2"
             fill="none"
             stroke="#d4af37"
-            strokeWidth="2.5"
+            strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ opacity: 0.6 }}
-          >
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-          <svg
-            viewBox="0 0 24 24"
-            className="absolute left-0 top-3 h-6 w-6 animate-pulse"
-            fill="none"
-            stroke="#d4af37"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ opacity: 0.6 }}
           >
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
+
+          {/* Flecha DERECHA grande */}
+          <svg
+            viewBox="0 0 24 24"
+            className="swipe-arrow-right absolute right-0 top-1/2 h-12 w-12 -translate-y-1/2"
+            fill="none"
+            stroke="#d4af37"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+
+          {/* Estela dorada detrás de la mano */}
+          <div className="swipe-trail absolute left-1/2 top-1/2 -translate-y-1/2" />
+
+          {/* Mano con dedo apuntando — más grande y reconocible */}
+          <div className="swipe-hand absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <svg
+              viewBox="0 0 64 64"
+              className="h-20 w-20 drop-shadow-[0_4px_12px_rgba(212,175,55,0.6)]"
+              fill="#fff"
+              stroke="#1a1a1a"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            >
+              {/* Dedo índice extendido apuntando hacia arriba/abajo */}
+              <path d="M28 8c-2 0-4 2-4 4v22l-3-2c-3-2-6 0-6 3v3l5 8c2 3 4 6 8 7l4 1c5 1 10-1 13-5l3-4c1-2 1-4 1-6v-9c0-2-2-4-4-4s-4 2-4 4v-2c0-2-2-4-4-4s-4 2-4 4v-2c0-2-2-4-4-4s-4 2-4 4v-1V12c0-2-2-4-4-4z" />
+              {/* Ondas tap saliendo del dedo */}
+              <circle cx="26" cy="6" r="2" fill="#d4af37" stroke="none" className="tap-ring-1" />
+              <circle cx="26" cy="6" r="4" fill="none" stroke="#d4af37" strokeWidth="1.5" className="tap-ring-2" />
+              <circle cx="26" cy="6" r="6" fill="none" stroke="#d4af37" strokeWidth="1.5" className="tap-ring-3" />
+            </svg>
+          </div>
         </div>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/90">
-          Arrastra para mirar
-        </p>
+
+        {/* Texto con efecto pulsante */}
+        <div className="swipe-text-box rounded-full bg-black/75 px-6 py-3 backdrop-blur-md border border-gold/40">
+          <p className="swipe-text text-sm font-semibold uppercase tracking-[0.3em] text-white">
+            ✦ Arrastra para mirar ✦
+          </p>
+        </div>
       </div>
 
       <style jsx>{`
-        @keyframes swipeHand {
+        .swipe-hint-root {
+          animation: swipeFadeOut 0.5s ease-in 4.5s forwards;
+        }
+        @keyframes swipeFadeOut {
+          to { opacity: 0; }
+        }
+
+        /* ===== Mano: vaivén horizontal con escala ===== */
+        .swipe-hand {
+          animation: swipeHandMove 2s ease-in-out infinite;
+          transform-origin: center;
+        }
+        @keyframes swipeHandMove {
           0% {
-            transform: translateX(-12px) rotate(-8deg);
-            opacity: 0.4;
+            transform: translate(calc(-50% - 80px), -50%) rotate(-12deg) scale(0.92);
+            opacity: 0.55;
           }
           50% {
-            transform: translateX(40px) rotate(8deg);
+            transform: translate(calc(-50% + 80px), -50%) rotate(12deg) scale(1.05);
             opacity: 1;
           }
           100% {
-            transform: translateX(-12px) rotate(-8deg);
-            opacity: 0.4;
+            transform: translate(calc(-50% - 80px), -50%) rotate(-12deg) scale(0.92);
+            opacity: 0.55;
           }
         }
-        :global(.animate-swipe-hand) {
-          animation: swipeHand 1.8s ease-in-out infinite;
+
+        /* ===== Estela dorada que sigue a la mano ===== */
+        .swipe-trail {
+          width: 200px;
+          height: 6px;
+          border-radius: 3px;
+          background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(212, 175, 55, 0) 10%,
+            rgba(212, 175, 55, 0.7) 50%,
+            rgba(212, 175, 55, 0) 90%,
+            transparent 100%);
+          filter: blur(2px);
+          animation: swipeTrail 2s ease-in-out infinite;
+        }
+        @keyframes swipeTrail {
+          0%, 100% { transform: translate(calc(-50% - 60px), -50%) scaleX(0.6); opacity: 0.3; }
+          25% { transform: translate(calc(-50% - 30px), -50%) scaleX(1); opacity: 0.9; }
+          50% { transform: translate(calc(-50% + 60px), -50%) scaleX(0.6); opacity: 0.3; }
+          75% { transform: translate(calc(-50% + 30px), -50%) scaleX(1); opacity: 0.9; }
+        }
+
+        /* ===== Glow dorado pulsante de fondo ===== */
+        .swipe-glow {
+          width: 240px;
+          height: 80px;
+          background: radial-gradient(ellipse at center,
+            rgba(212, 175, 55, 0.45) 0%,
+            rgba(212, 175, 55, 0.15) 35%,
+            transparent 70%);
+          filter: blur(8px);
+          animation: swipeGlowPulse 2s ease-in-out infinite;
+        }
+        @keyframes swipeGlowPulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
+          50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+        }
+
+        /* ===== Flechas pulsando a los lados ===== */
+        .swipe-arrow-left {
+          filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.7));
+          animation: arrowPulseLeft 1.5s ease-in-out infinite;
+        }
+        .swipe-arrow-right {
+          filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.7));
+          animation: arrowPulseRight 1.5s ease-in-out infinite;
+        }
+        @keyframes arrowPulseLeft {
+          0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.55; }
+          50% { transform: translateY(-50%) translateX(-8px); opacity: 1; }
+        }
+        @keyframes arrowPulseRight {
+          0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.55; }
+          50% { transform: translateY(-50%) translateX(8px); opacity: 1; }
+        }
+
+        /* ===== Ondas tap saliendo del dedo ===== */
+        :global(.tap-ring-1),
+        :global(.tap-ring-2),
+        :global(.tap-ring-3) {
+          transform-origin: 26px 6px;
+          animation: tapRing 1.6s ease-out infinite;
+        }
+        :global(.tap-ring-2) {
+          animation-delay: 0.25s;
+        }
+        :global(.tap-ring-3) {
+          animation-delay: 0.5s;
+        }
+        @keyframes tapRing {
+          0% { transform: scale(0.4); opacity: 1; }
+          70% { transform: scale(1.6); opacity: 0.3; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+
+        /* ===== Texto: pulso sutil de escala ===== */
+        .swipe-text-box {
+          animation: textPulse 2s ease-in-out infinite;
+          box-shadow: 0 0 24px rgba(212, 175, 55, 0.4);
+        }
+        @keyframes textPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+
+        .swipe-text {
+          text-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
         }
       `}</style>
     </div>
