@@ -187,14 +187,17 @@ export function PannellumViewer({
 
             hotspotDiv.innerHTML = `
               <div class="foco-hotspot-inner ${hasPreview ? 'foco-hotspot-portal' : ''}" style="
-                width: 48px;
-                height: 48px;
-                margin-left: -24px;
-                margin-top: -24px;
+                width: 64px;
+                height: 64px;
+                margin-left: -32px;
+                margin-top: -32px;
                 border-radius: 50%;
                 ${previewBg}
-                border: 2px solid ${ringColor};
-                box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                border: 3px solid ${ringColor};
+                box-shadow:
+                  0 4px 16px rgba(0,0,0,0.55),
+                  0 0 0 1px rgba(255,255,255,0.15) inset,
+                  0 0 28px ${ringColor}90;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -212,6 +215,7 @@ export function PannellumViewer({
                   height: 100%;
                   ${hasPreview ? 'background: rgba(0,0,0,0.35); backdrop-filter: blur(1px);' : ''}
                   transition: opacity 0.3s ease;
+                  transform: scale(1.25);
                 ">
                   ${iconSvg}
                 </div>
@@ -228,19 +232,22 @@ export function PannellumViewer({
                   const arrow = h.kind === 'navigation' ? ' →' : '';
                   return `<div class="foco-hotspot-label" style="
                       position: absolute;
-                      top: 30px;
+                      top: 48px;
                       left: 50%;
                       transform: translateX(-50%);
-                      background: rgba(0,0,0,0.85);
+                      background: linear-gradient(135deg, rgba(0,0,0,0.92), rgba(0,0,0,0.78));
                       color: #fff;
-                      padding: 4px 10px;
-                      border-radius: 6px;
-                      font-size: 11px;
+                      padding: 6px 14px;
+                      border-radius: 999px;
+                      font-size: 12px;
+                      font-weight: 600;
+                      letter-spacing: 0.4px;
                       white-space: nowrap;
                       pointer-events: none;
-                      font-weight: 500;
-                      letter-spacing: 0.3px;
-                      border: 1px solid ${ringColor}40;
+                      border: 1.5px solid ${ringColor};
+                      box-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 0 16px ${ringColor}60;
+                      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+                      animation: foco-label-bounce 2.4s ease-in-out infinite;
                     ">${escapeHtml(text)}${arrow}</div>`;
                 })()
               }
@@ -367,10 +374,10 @@ export function PannellumViewer({
            posicionar el hotspot en 2D según pitch/yaw). */
 
         .pnlm-hotspot.foco-hotspot {
-          width: 70px !important;
-          height: 70px !important;
-          margin-left: -35px !important;
-          margin-top: -35px !important;
+          width: 110px !important;
+          height: 110px !important;
+          margin-left: -55px !important;
+          margin-top: -55px !important;
           background: transparent !important;
           border: none !important;
           cursor: pointer !important;
@@ -383,112 +390,102 @@ export function PannellumViewer({
           /* Sin transform aquí — pannellum lo usa para posicionar */
         }
 
-        /* Círculo principal con cambio de color y movimiento flotante */
+        /* Halo dorado expansivo GIGANTE — efecto "salud" pulsante.
+           Va detrás de todo, llena el wrapper completo. */
         .pnlm-hotspot.foco-hotspot::before {
           content: '';
           position: absolute;
-          inset: 0;
+          left: 50%;
+          top: 50%;
+          width: 64px;
+          height: 64px;
+          margin-left: -32px;
+          margin-top: -32px;
           border-radius: 50%;
-          background: #fff;
-          border: 3px solid #d4af37;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
-            0 0 0 0 rgba(212, 175, 55, 0.7);
-          animation:
-            foco-hotspot-float 2.4s ease-in-out infinite,
-            foco-hotspot-color 2s ease-in-out infinite,
-            foco-hotspot-pulse 2s ease-out infinite;
+          background: radial-gradient(circle,
+            rgba(212, 175, 55, 0.35) 0%,
+            rgba(212, 175, 55, 0.15) 50%,
+            transparent 75%);
+          animation: foco-hotspot-mega-pulse 2.4s ease-out infinite;
+          pointer-events: none;
+          z-index: 0;
         }
 
-        /* Flecha "→" centrada arriba del fondo */
+        /* Anillo dorado rotativo punteado — efecto "click aquí" */
         .pnlm-hotspot.foco-hotspot::after {
           content: '';
-          position: relative;
-          width: 18px;
-          height: 18px;
-          border-top: 4px solid #1a1a1a;
-          border-right: 4px solid #1a1a1a;
-          transform: rotate(45deg);
-          margin-left: -6px;
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 82px;
+          height: 82px;
+          margin-left: -41px;
+          margin-top: -41px;
+          border-radius: 50%;
+          border: 3px dashed rgba(212, 175, 55, 0.9);
+          animation: foco-hotspot-rotate 6s linear infinite,
+            foco-hotspot-ring-pulse 2.4s ease-in-out infinite;
           pointer-events: none;
-          animation: foco-hotspot-arrow-color 2s ease-in-out infinite,
-            foco-hotspot-float 2.4s ease-in-out infinite;
+          z-index: 0;
+          filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
         }
 
-        .pnlm-hotspot.foco-hotspot:hover::before {
-          animation-play-state: paused;
-          background: #d4af37 !important;
-          transform: scale(1.15);
-        }
-        .pnlm-hotspot.foco-hotspot:hover::after {
-          animation-play-state: paused;
-          border-color: #fff;
-          transform: rotate(45deg) scale(1.15);
+        /* Inner del hotspot (renderizado por createTooltipFunc):
+           se sienta encima del halo y del ring. */
+        .pnlm-hotspot.foco-hotspot .foco-hotspot-inner {
+          position: relative;
+          z-index: 2;
         }
 
-        /* Movimiento flotante arriba/abajo */
-        @keyframes foco-hotspot-float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-8px);
-          }
-        }
-        /* La flecha tiene su propia transform rotate, así que se la
-           combinamos con el translateY mediante un keyframe distinto */
-        .pnlm-hotspot.foco-hotspot::after {
-          animation:
-            foco-hotspot-arrow-color 2s ease-in-out infinite,
-            foco-hotspot-arrow-float 2.4s ease-in-out infinite;
-        }
-        @keyframes foco-hotspot-arrow-float {
-          0%, 100% {
-            transform: rotate(45deg) translateY(0);
-          }
-          50% {
-            transform: rotate(45deg) translateY(-8px);
-          }
-        }
-        /* Cambio de color blanco → dorado → blanco */
-        @keyframes foco-hotspot-color {
-          0%, 100% {
-            background: #fff;
-            border-color: #d4af37;
-          }
-          50% {
-            background: #d4af37;
-            border-color: #fff;
-          }
-        }
-        /* Flecha negra → blanca para contrastar con el fondo dorado */
-        @keyframes foco-hotspot-arrow-color {
-          0%, 100% {
-            border-color: #1a1a1a;
-          }
-          50% {
-            border-color: #fff;
-          }
-        }
-        /* Halo expansivo */
-        @keyframes foco-hotspot-pulse {
+        /* Halo MEGA pulsante: empieza chico, crece hasta cubrir todo */
+        @keyframes foco-hotspot-mega-pulse {
           0% {
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
-              0 0 0 0 rgba(212, 175, 55, 0.7);
+            transform: scale(0.7);
+            opacity: 1;
           }
           70% {
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
-              0 0 0 30px rgba(212, 175, 55, 0);
+            transform: scale(1.7);
+            opacity: 0.2;
           }
           100% {
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5),
-              0 0 0 0 rgba(212, 175, 55, 0);
+            transform: scale(1.9);
+            opacity: 0;
           }
         }
 
-        /* Animacion de bob sutil (sube/baja 3px, lento) */
+        /* Anillo rotativo */
+        @keyframes foco-hotspot-rotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* Anillo cambia opacidad: visible → atenuado → visible */
+        @keyframes foco-hotspot-ring-pulse {
+          0%, 100% {
+            border-color: rgba(212, 175, 55, 0.9);
+            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.7));
+          }
+          50% {
+            border-color: rgba(255, 255, 255, 0.95);
+            filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.9));
+          }
+        }
+
+        /* Animación bob sutil (sube/baja 3px, lento) — usada por
+           el inner div al renderizar */
         @keyframes foco-hotspot-bob {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
+          50% { transform: translateY(-4px); }
+        }
+
+        /* Bounce del label para llamar atención hacia el destino */
+        @keyframes foco-label-bounce {
+          0%, 100% {
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+          50% {
+            transform: translateX(-50%) translateY(2px) scale(1.04);
+          }
         }
 
         /* Cursor estilo videojuego sobre el panorama */
