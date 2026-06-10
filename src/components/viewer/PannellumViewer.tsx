@@ -187,17 +187,16 @@ export function PannellumViewer({
 
             hotspotDiv.innerHTML = `
               <div class="foco-hotspot-inner ${hasPreview ? 'foco-hotspot-portal' : ''}" style="
-                width: 64px;
-                height: 64px;
-                margin-left: -32px;
-                margin-top: -32px;
+                width: 48px;
+                height: 48px;
+                margin-left: -24px;
+                margin-top: -24px;
                 border-radius: 50%;
                 ${previewBg}
-                border: 3px solid ${ringColor};
+                border: 2px solid ${ringColor};
                 box-shadow:
-                  0 4px 16px rgba(0,0,0,0.55),
-                  0 0 0 1px rgba(255,255,255,0.15) inset,
-                  0 0 28px ${ringColor}90;
+                  0 3px 10px rgba(0,0,0,0.5),
+                  0 0 18px ${ringColor}70;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -215,11 +214,15 @@ export function PannellumViewer({
                   height: 100%;
                   ${hasPreview ? 'background: rgba(0,0,0,0.35); backdrop-filter: blur(1px);' : ''}
                   transition: opacity 0.3s ease;
-                  transform: scale(1.25);
                 ">
                   ${iconSvg}
                 </div>
               </div>
+              <!-- Destellos de luz alrededor del hotspot -->
+              <span class="foco-sparkle foco-sparkle-1"></span>
+              <span class="foco-sparkle foco-sparkle-2"></span>
+              <span class="foco-sparkle foco-sparkle-3"></span>
+              <span class="foco-sparkle foco-sparkle-4"></span>
               ${
                 // Prioridad: nombre de la escena destino > etiqueta manual.
                 // Si es info hotspot, usa la etiqueta del usuario.
@@ -232,20 +235,20 @@ export function PannellumViewer({
                   const arrow = h.kind === 'navigation' ? ' →' : '';
                   return `<div class="foco-hotspot-label" style="
                       position: absolute;
-                      top: 48px;
+                      top: 34px;
                       left: 50%;
                       transform: translateX(-50%);
                       background: linear-gradient(135deg, rgba(0,0,0,0.92), rgba(0,0,0,0.78));
                       color: #fff;
-                      padding: 6px 14px;
+                      padding: 4px 11px;
                       border-radius: 999px;
-                      font-size: 12px;
+                      font-size: 11px;
                       font-weight: 600;
-                      letter-spacing: 0.4px;
+                      letter-spacing: 0.3px;
                       white-space: nowrap;
                       pointer-events: none;
                       border: 1.5px solid ${ringColor};
-                      box-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 0 16px ${ringColor}60;
+                      box-shadow: 0 3px 10px rgba(0,0,0,0.5), 0 0 12px ${ringColor}60;
                       text-shadow: 0 1px 2px rgba(0,0,0,0.8);
                       animation: foco-label-bounce 2.4s ease-in-out infinite;
                     ">${escapeHtml(text)}${arrow}</div>`;
@@ -374,10 +377,10 @@ export function PannellumViewer({
            posicionar el hotspot en 2D según pitch/yaw). */
 
         .pnlm-hotspot.foco-hotspot {
-          width: 110px !important;
-          height: 110px !important;
-          margin-left: -55px !important;
-          margin-top: -55px !important;
+          width: 80px !important;
+          height: 80px !important;
+          margin-left: -40px !important;
+          margin-top: -40px !important;
           background: transparent !important;
           border: none !important;
           cursor: pointer !important;
@@ -390,88 +393,100 @@ export function PannellumViewer({
           /* Sin transform aquí — pannellum lo usa para posicionar */
         }
 
-        /* Halo dorado expansivo GIGANTE — efecto "salud" pulsante.
-           Va detrás de todo, llena el wrapper completo. */
+        /* Halo dorado expansivo (más sutil, solo el destello básico).
+           Va detrás de todo. */
         .pnlm-hotspot.foco-hotspot::before {
           content: '';
           position: absolute;
           left: 50%;
           top: 50%;
-          width: 64px;
-          height: 64px;
-          margin-left: -32px;
-          margin-top: -32px;
+          width: 48px;
+          height: 48px;
+          margin-left: -24px;
+          margin-top: -24px;
           border-radius: 50%;
           background: radial-gradient(circle,
-            rgba(212, 175, 55, 0.35) 0%,
-            rgba(212, 175, 55, 0.15) 50%,
+            rgba(212, 175, 55, 0.4) 0%,
+            rgba(212, 175, 55, 0.1) 60%,
             transparent 75%);
-          animation: foco-hotspot-mega-pulse 2.4s ease-out infinite;
+          animation: foco-hotspot-halo 2.2s ease-out infinite;
           pointer-events: none;
           z-index: 0;
-        }
-
-        /* Anillo dorado rotativo punteado — efecto "click aquí" */
-        .pnlm-hotspot.foco-hotspot::after {
-          content: '';
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 82px;
-          height: 82px;
-          margin-left: -41px;
-          margin-top: -41px;
-          border-radius: 50%;
-          border: 3px dashed rgba(212, 175, 55, 0.9);
-          animation: foco-hotspot-rotate 6s linear infinite,
-            foco-hotspot-ring-pulse 2.4s ease-in-out infinite;
-          pointer-events: none;
-          z-index: 0;
-          filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
         }
 
         /* Inner del hotspot (renderizado por createTooltipFunc):
-           se sienta encima del halo y del ring. */
+           se sienta encima del halo. */
         .pnlm-hotspot.foco-hotspot .foco-hotspot-inner {
           position: relative;
           z-index: 2;
         }
 
-        /* Halo MEGA pulsante: empieza chico, crece hasta cubrir todo */
-        @keyframes foco-hotspot-mega-pulse {
-          0% {
-            transform: scale(0.7);
-            opacity: 1;
-          }
-          70% {
-            transform: scale(1.7);
-            opacity: 0.2;
-          }
-          100% {
-            transform: scale(1.9);
+        /* DESTELLOS DE LUZ (sparkles) — estrellas de 4 puntas que
+           aparecen/desaparecen alrededor del hotspot con delays distintos. */
+        .foco-sparkle {
+          position: absolute;
+          width: 14px;
+          height: 14px;
+          pointer-events: none;
+          z-index: 3;
+          opacity: 0;
+          animation: foco-sparkle-twinkle 2.4s ease-in-out infinite;
+        }
+        .foco-sparkle::before,
+        .foco-sparkle::after {
+          content: '';
+          position: absolute;
+          background: linear-gradient(transparent, #fff, transparent);
+          box-shadow: 0 0 6px #fff, 0 0 10px rgba(212, 175, 55, 0.9);
+        }
+        /* Línea vertical de la estrella */
+        .foco-sparkle::before {
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          margin-left: -1px;
+          background: linear-gradient(transparent, #fff 40%, #fff 60%, transparent);
+        }
+        /* Línea horizontal de la estrella */
+        .foco-sparkle::after {
+          top: 50%;
+          left: 0;
+          right: 0;
+          height: 2px;
+          margin-top: -1px;
+          background: linear-gradient(90deg, transparent, #fff 40%, #fff 60%, transparent);
+        }
+        /* 4 sparkles en posiciones distintas con timing escalonado */
+        .foco-sparkle-1 { top: -2px; right: 8px; animation-delay: 0s; }
+        .foco-sparkle-2 { top: 18px; right: -4px; animation-delay: 0.5s; }
+        .foco-sparkle-3 { bottom: 8px; left: -4px; animation-delay: 1s; }
+        .foco-sparkle-4 { top: 4px; left: 6px; animation-delay: 1.6s; width: 10px; height: 10px; }
+
+        /* Twinkle: aparece-rota-desaparece */
+        @keyframes foco-sparkle-twinkle {
+          0%, 70%, 100% {
             opacity: 0;
+            transform: scale(0.3) rotate(0deg);
+          }
+          20% {
+            opacity: 1;
+            transform: scale(1.1) rotate(45deg);
+          }
+          40% {
+            opacity: 0.9;
+            transform: scale(1) rotate(90deg);
           }
         }
 
-        /* Anillo rotativo */
-        @keyframes foco-hotspot-rotate {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        /* Halo simple: aparece y se desvanece */
+        @keyframes foco-hotspot-halo {
+          0% { transform: scale(0.8); opacity: 0.9; }
+          70% { transform: scale(1.5); opacity: 0.15; }
+          100% { transform: scale(1.7); opacity: 0; }
         }
 
-        /* Anillo cambia opacidad: visible → atenuado → visible */
-        @keyframes foco-hotspot-ring-pulse {
-          0%, 100% {
-            border-color: rgba(212, 175, 55, 0.9);
-            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.7));
-          }
-          50% {
-            border-color: rgba(255, 255, 255, 0.95);
-            filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.9));
-          }
-        }
-
-        /* Animación bob sutil (sube/baja 3px, lento) — usada por
+        /* Animación bob sutil (sube/baja 4px, lento) — usada por
            el inner div al renderizar */
         @keyframes foco-hotspot-bob {
           0%, 100% { transform: translateY(0); }
