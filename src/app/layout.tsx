@@ -7,7 +7,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || 'https://foco-360.vercel.app'
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://tours.focoestudio.net'
   ),
   title: {
     default: 'FOCO 360°',
