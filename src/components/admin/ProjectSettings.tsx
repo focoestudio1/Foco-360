@@ -11,6 +11,7 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { showToast } from '@/components/ui/Toast';
 import { CopyLinkButton } from './CopyLinkButton';
+import { QRCodeButton } from './QRCodeButton';
 import {
   uploadCover as uploadCoverDirect,
   uploadLogo as uploadLogoDirect,
@@ -441,7 +442,14 @@ export function ProjectSettings({
           >
             Vista previa →
           </a>
-          <CopyLinkButton url={tourLink} />
+          <div className="flex items-center gap-4">
+            <QRCodeButton
+              projectName={project.name}
+              tourUrl={tourLink}
+              brandColor={project.brand_color}
+            />
+            <CopyLinkButton url={tourLink} />
+          </div>
         </div>
       </div>
 

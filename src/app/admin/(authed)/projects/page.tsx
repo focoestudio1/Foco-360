@@ -8,6 +8,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase-server';
 import { formatDate } from '@/lib/utils';
 import { getSignedReadUrl } from '@/lib/r2';
 import { CopyLinkButton } from '@/components/admin/CopyLinkButton';
+import { QRCodeButton } from '@/components/admin/QRCodeButton';
 import { ProjectCardActions } from '@/components/admin/ProjectCardActions';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,7 @@ export default async function ProjectsListPage() {
   const [{ data: projects }, { data: views }] = await Promise.all([
     supabase
       .from('projects')
-      .select('id, slug, name, client_name, is_active, cover_url, created_at')
+      .select('id, slug, name, client_name, is_active, cover_url, brand_color, created_at')
       .order('created_at', { ascending: false }),
     supabase.from('scene_views').select('project_id'),
   ]);
@@ -105,7 +106,14 @@ export default async function ProjectsListPage() {
                 </div>
                 <div className="flex items-center justify-between border-t border-border pt-3 text-xs">
                   <span className="text-text-muted">{p.views ?? 0} vistas</span>
-                  <CopyLinkButton url={`${siteUrl}/tour/${p.slug}`} />
+                  <div className="flex items-center gap-4">
+                    <QRCodeButton
+                      projectName={p.name}
+                      tourUrl={`${siteUrl}/tour/${p.slug}`}
+                      brandColor={p.brand_color}
+                    />
+                    <CopyLinkButton url={`${siteUrl}/tour/${p.slug}`} />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-border pt-2">
                   <span className="text-[10px] uppercase tracking-wider text-text-subtle">
