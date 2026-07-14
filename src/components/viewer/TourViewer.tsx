@@ -149,6 +149,24 @@ export function TourViewer({
     setTimeout(() => setIntroVisible(false), 800);
   }
 
+  // Backgrounds del intro — rotan como trailer cinematográfico.
+  // Prioriza galería (fotos planas livianas y no distorsionadas). Si no
+  // hay galería, usa cover + primeras 3 escenas 360° (con blur intenso
+  // la distorsión equirectangular no se nota). Máximo 8 para performance.
+  const introBackgrounds = [
+    ...(coverUrl ? [coverUrl] : []),
+    ...gallery.slice(0, 8).map((g) => g.url),
+    ...(gallery.length === 0 ? scenes.slice(0, 3).map((s) => s.url) : []),
+  ].slice(0, 8);
+  const [bgIndex, setBgIndex] = useState(0);
+  useEffect(() => {
+    if (!introVisible || introBackgrounds.length <= 1) return;
+    const interval = setInterval(() => {
+      setBgIndex((i) => (i + 1) % introBackgrounds.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [introVisible, introBackgrounds.length]);
+
   // Música de fondo + ducking: cuando la narración de la escena
   // está sonando, BackgroundMusic baja su volumen automáticamente.
   const musicTrack = getTrackById(backgroundMusicId);
@@ -296,17 +314,24 @@ export function TourViewer({
           }}
           aria-label="Tocar para entrar al tour"
         >
-          {/* Fondo con la portada blurred, oscurecido con overlay */}
-          {coverUrl && (
+          {/* Fondo rotante — trailer cinematográfico entre las fotos
+              disponibles. Cada imagen se cross-fade contra la siguiente
+              cada 4.5s. Con solo 1 imagen queda estática. */}
+          {introBackgrounds.length > 0 && (
             <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={coverUrl}
-                alt=""
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-md"
-                draggable={false}
-              />
+              {introBackgrounds.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={url}
+                  src={url}
+                  alt=""
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-md transition-opacity duration-[1500ms] ease-in-out ${
+                    i === bgIndex ? 'opacity-40' : 'opacity-0'
+                  }`}
+                  draggable={false}
+                />
+              ))}
               <div
                 className="pointer-events-none absolute inset-0"
                 style={{
