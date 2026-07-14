@@ -71,6 +71,8 @@ export function TourViewer({
   backgroundMusicVolume,
   welcomeVideoUrl,
   gallery = [],
+  coverUrl,
+  clientName,
 }: {
   slug: string;
   projectName: string;
@@ -107,6 +109,10 @@ export function TourViewer({
   welcomeVideoUrl?: string | null;
   // Galería de fotos planas (no 360°). Si está vacía, el botón no aparece.
   gallery?: GalleryPhoto[];
+  // URL firmada de la portada — usada como fondo blur del intro.
+  coverUrl?: string | null;
+  // Nombre del cliente/inmobiliaria — subtítulo del intro.
+  clientName?: string | null;
 }) {
   // Color final usado en hotspots, acentos.
   const color = brandColor || '#d4af37';
@@ -132,12 +138,16 @@ export function TourViewer({
     .split('\n')
     .map((s) => s.trim())
     .filter(Boolean);
-  // Splash de intro: visible los primeros 2.5s al cargar el tour.
-  const [showSplash, setShowSplash] = useState(true);
-  useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 2500);
-    return () => clearTimeout(t);
-  }, []);
+  // Intro cinematográfico: espera click del usuario para entrar al tour.
+  // El click también desbloquea el autoplay de audio/video (Chrome policy).
+  // isEmbed skipea el intro directo (embebido en otro sitio, ya hay contexto).
+  const [introVisible, setIntroVisible] = useState(!isEmbed);
+  // Fase de salida del intro: fade suave antes de desmontar del DOM.
+  const [introExiting, setIntroExiting] = useState(false);
+  function dismissIntro() {
+    setIntroExiting(true);
+    setTimeout(() => setIntroVisible(false), 800);
+  }
 
   // Música de fondo + ducking: cuando la narración de la escena
   // está sonando, BackgroundMusic baja su volumen automáticamente.
@@ -268,41 +278,108 @@ export function TourViewer({
 
   return (
     <div className="fixed inset-0 flex flex-col bg-black text-white">
-      {/* Splash de intro: aparece 2.5s al cargar y se desvanece */}
-      <div
-        className={`pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center bg-black transition-opacity duration-700 ${
-          showSplash ? 'opacity-100' : 'opacity-0'
-        }`}
-        aria-hidden={!showSplash}
-      >
-        {logoUrl ? (
-          <span className="mb-6 inline-flex items-center rounded-md bg-white/95 px-3 py-1.5 shadow-lg">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={logoUrl}
-              alt={projectName}
-              className="h-10 w-auto"
-              draggable={false}
-            />
-          </span>
-        ) : (
-          <div
-            className="mb-4 h-2 w-2 rounded-full"
-            style={{ background: color, boxShadow: `0 0 16px ${color}` }}
-          />
-        )}
-        <h1
-          className="font-display text-4xl font-medium tracking-[0.25em] text-white animate-fade-in md:text-5xl"
-          style={{ textShadow: `0 4px 24px ${color}40` }}
+      {/* Intro cinematográfico: espera click para entrar al tour.
+          El click también desbloquea el autoplay de audio/video en Chrome. */}
+      {introVisible && (
+        <div
+          onClick={dismissIntro}
+          className={`fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-black transition-opacity duration-700 ${
+            introExiting ? 'opacity-0' : 'opacity-100 animate-fade-in'
+          }`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              dismissIntro();
+            }
+          }}
+          aria-label="Tocar para entrar al tour"
         >
-          {projectName.toUpperCase()}
-        </h1>
-        <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.4em] text-white/50">
-          <span className="h-px w-10" style={{ background: color }} />
-          <span>Tour virtual 360°</span>
-          <span className="h-px w-10" style={{ background: color }} />
+          {/* Fondo con la portada blurred, oscurecido con overlay */}
+          {coverUrl && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={coverUrl}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-md"
+                draggable={false}
+              />
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: `radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.95) 100%)`,
+                }}
+              />
+            </>
+          )}
+
+          {/* Contenido centrado, animado en cascada */}
+          <div className="relative z-10 flex flex-col items-center px-8 text-center">
+            {logoUrl ? (
+              <span className="mb-8 inline-flex items-center rounded-md bg-white/95 px-4 py-2 shadow-2xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoUrl}
+                  alt={projectName}
+                  className="h-12 w-auto sm:h-14"
+                  draggable={false}
+                />
+              </span>
+            ) : (
+              <div
+                className="mb-6 h-2 w-2 rounded-full"
+                style={{ background: color, boxShadow: `0 0 24px ${color}` }}
+              />
+            )}
+
+            <h1
+              className="font-display text-3xl font-medium leading-tight tracking-[0.15em] text-white sm:text-5xl md:text-6xl"
+              style={{ textShadow: `0 4px 32px ${color}60` }}
+            >
+              {projectName.toUpperCase()}
+            </h1>
+
+            <div className="mt-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.4em] text-white/60">
+              <span className="h-px w-8 sm:w-12" style={{ background: color }} />
+              <span>Tour virtual 360°</span>
+              <span className="h-px w-8 sm:w-12" style={{ background: color }} />
+            </div>
+
+            {clientName && (
+              <p className="mt-6 text-xs uppercase tracking-[0.3em] text-white/50 sm:text-sm">
+                {clientName}
+              </p>
+            )}
+
+            {/* Botón "TOCAR PARA ENTRAR" — con pulso dorado */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissIntro();
+              }}
+              className="group mt-12 inline-flex items-center gap-3 rounded-full px-6 py-3 text-xs font-semibold uppercase tracking-[0.3em] text-black transition-all hover:scale-105 sm:mt-16 sm:px-8 sm:py-4 sm:text-sm"
+              style={{
+                background: color,
+                boxShadow: `0 0 0 0 ${color}80`,
+                animation: 'pulseGold 2s ease-in-out infinite',
+              }}
+            >
+              <span>Tocar para entrar</span>
+              <span className="transition-transform group-hover:translate-x-1">
+                →
+              </span>
+            </button>
+
+            <p className="mt-4 text-[10px] uppercase tracking-widest text-white/30">
+              o presiona cualquier tecla
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Banner de vista previa de admin */}
       {isPreview && (

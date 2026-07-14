@@ -210,6 +210,10 @@ export default async function TourPage({
   const welcomeVideoUrl = project.welcome_video_url
     ? await getSignedReadUrl(project.welcome_video_url).catch(() => null)
     : null;
+  // Portada del proyecto — usada como fondo blur del intro cinematográfico.
+  const coverUrl = project.cover_url
+    ? await getSignedReadUrl(project.cover_url).catch(() => null)
+    : null;
 
   return (
     <TourViewer
@@ -239,6 +243,8 @@ export default async function TourPage({
       }
       welcomeVideoUrl={welcomeVideoUrl}
       gallery={gallerySigned}
+      coverUrl={coverUrl}
+      clientName={project.client_name}
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,
