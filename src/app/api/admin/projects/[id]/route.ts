@@ -151,6 +151,10 @@ export async function PATCH(
   if ('specs_description' in body) {
     update.specs_description = body.specs_description?.toString().trim() || null;
   }
+  // Lead capture: si requiere formulario de contacto antes del tour.
+  if (typeof body.requires_lead === 'boolean') {
+    update.requires_lead = body.requires_lead;
+  }
   // Música de fondo: id de pista en la biblioteca + volumen base.
   if ('background_music_id' in body) {
     update.background_music_id =

@@ -15,6 +15,7 @@ import { getAdminUser } from '@/lib/auth';
 import { getSignedReadUrl } from '@/lib/r2';
 import { TourAccess } from '@/components/viewer/TourAccess';
 import { TourViewer } from '@/components/viewer/TourViewer';
+import { LeadForm } from '@/components/viewer/LeadForm';
 import { Logo } from '@/components/ui/Logo';
 
 export const dynamic = 'force-dynamic';
@@ -79,7 +80,7 @@ export default async function TourPage({
   const supabase = createSupabaseAdminClient();
   const { data: project } = await supabase
     .from('projects')
-    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color, floorplan_url, specs_image_url, specs_title, specs_price, specs_features, specs_description, background_music_id, background_music_volume, welcome_video_url')
+    .select('id, slug, name, client_name, description, is_active, cover_url, password_hash, logo_url, whatsapp_phone, whatsapp_message, brand_color, floorplan_url, specs_image_url, specs_title, specs_price, specs_features, specs_description, background_music_id, background_music_volume, welcome_video_url, requires_lead')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -117,6 +118,30 @@ export default async function TourPage({
         clientName={project.client_name}
         description={project.description}
         coverUrl={coverUrl}
+      />
+    );
+  }
+
+  // ---- Lead form gate: si el proyecto requiere lead y no hay cookie ----
+  // Bypaseado en preview de admin y en modo embed (contexto ya establecido).
+  const isEmbed = searchParams.embed === '1';
+  const leadCaptured =
+    cookieStore.get(`lead_captured_${params.slug}`)?.value === '1';
+  if (project.requires_lead && !isPreview && !isEmbed && !leadCaptured) {
+    const coverUrl = project.cover_url
+      ? await getSignedReadUrl(project.cover_url).catch(() => null)
+      : null;
+    const logoUrl = project.logo_url
+      ? await getSignedReadUrl(project.logo_url).catch(() => null)
+      : null;
+    return (
+      <LeadForm
+        slug={params.slug}
+        projectName={project.name}
+        clientName={project.client_name}
+        coverUrl={coverUrl}
+        logoUrl={logoUrl}
+        brandColor={project.brand_color}
       />
     );
   }

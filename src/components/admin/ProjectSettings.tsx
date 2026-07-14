@@ -53,6 +53,7 @@ export function ProjectSettings({
     specs_description: project.specs_description ?? '',
     background_music_id: project.background_music_id ?? '',
     background_music_volume: project.background_music_volume ?? 0.4,
+    requires_lead: (project as any).requires_lead ?? false,
   });
   // Modo de acceso: derivado del estado actual del proyecto.
   // El usuario lo cambia con un toggle explícito.
@@ -100,6 +101,7 @@ export function ProjectSettings({
       specs_description: form.specs_description,
       background_music_id: form.background_music_id || null,
       background_music_volume: form.background_music_volume,
+      requires_lead: form.requires_lead,
     };
     // Si el usuario quiere contraseña y escribió una, la mandamos.
     if (wantPassword && form.password) {
@@ -481,6 +483,24 @@ export function ProjectSettings({
             className="h-4 w-4 accent-gold"
             checked={form.is_active}
             onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+          />
+        </label>
+
+        <label className="flex cursor-pointer items-start justify-between gap-3 rounded-md border border-border bg-bg-elevated px-3 py-2">
+          <div className="flex-1">
+            <span className="text-sm">Requerir formulario de contacto</span>
+            <p className="mt-0.5 text-[11px] text-text-subtle">
+              El visitante debe dejar Nombre + Email antes de acceder al tour.
+              Los leads quedan visibles en /admin/leads.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 accent-gold"
+            checked={form.requires_lead}
+            onChange={(e) =>
+              setForm({ ...form, requires_lead: e.target.checked })
+            }
           />
         </label>
       </div>
