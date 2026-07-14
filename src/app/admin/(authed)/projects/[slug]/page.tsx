@@ -41,6 +41,12 @@ export default async function ProjectEditPage({
     hotspots = hs ?? [];
   }
 
+  const { data: gallery } = await supabase
+    .from('gallery_photos')
+    .select('*')
+    .eq('project_id', project.id)
+    .order('order_index', { ascending: true });
+
   const cover_signed_url = project.cover_url
     ? await getSignedReadUrl(project.cover_url).catch(() => null)
     : null;
@@ -58,6 +64,13 @@ export default async function ProjectEditPage({
       audio_signed_url: s.audio_url
         ? await getSignedReadUrl(s.audio_url).catch(() => null)
         : null,
+    }))
+  );
+
+  const gallerySigned = await Promise.all(
+    (gallery ?? []).map(async (p) => ({
+      ...p,
+      signed_url: await getSignedReadUrl(p.image_url).catch(() => null),
     }))
   );
 
@@ -94,6 +107,7 @@ export default async function ProjectEditPage({
         }}
         initialScenes={scenesSigned}
         initialHotspots={hotspots}
+        initialGallery={gallerySigned}
       />
     </div>
   );

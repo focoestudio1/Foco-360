@@ -153,6 +153,12 @@ export default async function TourPage({
     hotspots = hs ?? [];
   }
 
+  const { data: gallery } = await supabase
+    .from('gallery_photos')
+    .select('id, image_url, caption, order_index')
+    .eq('project_id', project.id)
+    .order('order_index', { ascending: true });
+
   if (!scenes || scenes.length === 0) {
     return (
       <EmptyTour
@@ -182,6 +188,14 @@ export default async function TourPage({
       floorplanY: s.floorplan_y != null ? Number(s.floorplan_y) : null,
     }))
   );
+
+  // Galería: usa el mismo proxy que las escenas para evitar CORS y no
+  // exponer firmas. La foto se lee directo de <img>, no de Pannellum.
+  const gallerySigned = (gallery ?? []).map((p) => ({
+    id: p.id,
+    caption: p.caption,
+    url: `/api/tour/${params.slug}/image?key=${encodeURIComponent(p.image_url)}`,
+  }));
 
   // Logo y plano del proyecto (si tiene).
   const logoUrl = project.logo_url
@@ -224,6 +238,7 @@ export default async function TourPage({
           : null
       }
       welcomeVideoUrl={welcomeVideoUrl}
+      gallery={gallerySigned}
       hotspots={hotspots.map((h) => ({
         id: h.id,
         scene_id: h.scene_id,

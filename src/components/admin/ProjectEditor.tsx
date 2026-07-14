@@ -11,6 +11,7 @@ import { ScenesManager } from './ScenesManager';
 import { HotspotEditor } from './HotspotEditor';
 import { FloorplanPinEditor } from './FloorplanPinEditor';
 import { SceneStats } from './SceneStats';
+import { GalleryManager, type GalleryPhotoWithUrl } from './GalleryManager';
 import { showToast } from '@/components/ui/Toast';
 
 export type SceneWithUrl = {
@@ -87,15 +88,18 @@ export function ProjectEditor({
   project,
   initialScenes,
   initialHotspots,
+  initialGallery,
 }: {
   project: Project;
   initialScenes: SceneWithUrl[];
   initialHotspots: Hotspot[];
+  initialGallery: GalleryPhotoWithUrl[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [scenes, setScenes] = useState(initialScenes);
   const [hotspots, setHotspots] = useState(initialHotspots);
+  const [gallery, setGallery] = useState(initialGallery);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(
     initialScenes[0]?.id ?? null
   );
@@ -110,6 +114,9 @@ export function ProjectEditor({
   useEffect(() => {
     setHotspots(initialHotspots);
   }, [initialHotspots]);
+  useEffect(() => {
+    setGallery(initialGallery);
+  }, [initialGallery]);
 
   function refresh() {
     startTransition(() => router.refresh());
@@ -158,6 +165,14 @@ export function ProjectEditor({
           setHotspots={setHotspots}
           activeSceneId={activeSceneId}
           projectSlug={project.slug}
+        />
+
+        {/* Galería de fotos planas (no 360°) */}
+        <GalleryManager
+          projectId={project.id}
+          photos={gallery}
+          setPhotos={setGallery}
+          onChanged={refresh}
         />
 
         {/* Estadísticas por escena */}

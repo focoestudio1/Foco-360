@@ -12,7 +12,7 @@
 
 import imageCompression from 'browser-image-compression';
 
-export type UploadKind = 'cover' | 'scene' | 'logo' | 'audio' | 'floorplan' | 'specs' | 'welcome';
+export type UploadKind = 'cover' | 'scene' | 'logo' | 'audio' | 'floorplan' | 'specs' | 'welcome' | 'gallery';
 
 export type UploadProgress = {
   // Fase actual: comprimir o subir.
@@ -35,6 +35,7 @@ const THRESHOLDS_MB: Record<UploadKind, number> = {
   floorplan: 2,
   specs: 3,
   welcome: Infinity, // Videos no se comprimen en browser.
+  gallery: 3, // Fotos planas: reducimos a max ~1.5 MB manteniendo calidad.
 };
 
 // Comprime si hace falta. Mantiene calidad visual alta:
@@ -58,12 +59,14 @@ async function compressIfNeeded(
     kind === 'logo' ? 800 :
     kind === 'floorplan' ? 2400 :
     kind === 'specs' ? 1600 :
+    kind === 'gallery' ? 2400 :
     1920;
   const targetMB =
     kind === 'scene' ? 5 :
     kind === 'logo' ? 0.5 :
     kind === 'floorplan' ? 1 :
     kind === 'specs' ? 1 :
+    kind === 'gallery' ? 1.5 :
     1.5;
 
   // Para escenas/portadas convertimos a JPEG (mejor compresión).
@@ -305,6 +308,31 @@ export async function uploadWelcomeVideo(
   if (!confirm.ok) {
     const err = await confirm.json().catch(() => ({}));
     throw new Error(err.error || 'Error al confirmar el video');
+  }
+  return confirm.json();
+}
+
+// API pública: sube una foto plana a la galería del proyecto.
+// Se comprime a max 2400px y ~1.5 MB manteniendo buena calidad.
+export async function uploadGalleryPhoto(
+  projectId: string,
+  file: File,
+  caption?: string,
+  onProgress?: (p: UploadProgress) => void
+): Promise<{ photo: any }> {
+  const compressed = await compressIfNeeded(file, 'gallery', (pct) =>
+    onProgress?.({ phase: 'compressing', loaded: 0, total: 0, pct })
+  );
+  const { uploadUrl, key } = await getSignedUrl(projectId, 'gallery', compressed);
+  await putWithProgress(uploadUrl, compressed, onProgress);
+  const confirm = await fetch(`/api/admin/projects/${projectId}/gallery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, caption: caption ?? null }),
+  });
+  if (!confirm.ok) {
+    const err = await confirm.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al confirmar la foto de galería');
   }
   return confirm.json();
 }

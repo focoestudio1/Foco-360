@@ -13,6 +13,7 @@ import { Logo } from '@/components/ui/Logo';
 import { showToast } from '@/components/ui/Toast';
 import { getTrackById, getTrackUrl } from '@/lib/musicLibrary';
 import type { PannellumHandle } from './PannellumViewer';
+import { GalleryLightbox, type GalleryPhoto } from './GalleryLightbox';
 
 const Pannellum = dynamic(() => import('./PannellumViewer').then((m) => m.PannellumViewer), {
   ssr: false,
@@ -69,6 +70,7 @@ export function TourViewer({
   backgroundMusicId,
   backgroundMusicVolume,
   welcomeVideoUrl,
+  gallery = [],
 }: {
   slug: string;
   projectName: string;
@@ -103,6 +105,8 @@ export function TourViewer({
   backgroundMusicVolume?: number | null;
   // Video de bienvenida del agente (opcional). URL firmada del MP4.
   welcomeVideoUrl?: string | null;
+  // Galería de fotos planas (no 360°). Si está vacía, el botón no aparece.
+  gallery?: GalleryPhoto[];
 }) {
   // Color final usado en hotspots, acentos.
   const color = brandColor || '#d4af37';
@@ -112,6 +116,9 @@ export function TourViewer({
   const [infoModal, setInfoModal] = useState<ViewerHotspot | null>(null);
   // Modal ficha del inmueble.
   const [specsModalOpen, setSpecsModalOpen] = useState(false);
+  // Lightbox de galería de fotos planas.
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const hasGallery = gallery.length > 0;
 
   // ¿Hay ficha del inmueble para mostrar?
   const hasSpecs = !!(
@@ -542,6 +549,38 @@ export function TourViewer({
             />
           )}
 
+          {/* Galería de fotos planas (si el proyecto tiene fotos cargadas) */}
+          {hasGallery && (
+            <button
+              type="button"
+              onClick={() => setGalleryOpen(true)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              title={`Ver galería (${gallery.length} foto${gallery.length === 1 ? '' : 's'})`}
+              aria-label="Galería de fotos"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+              {/* Badge con el conteo de fotos */}
+              <span
+                className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold text-black"
+                style={{ backgroundColor: color }}
+              >
+                {gallery.length}
+              </span>
+            </button>
+          )}
+
           {/* WhatsApp (si el proyecto tiene número configurado) */}
           {whatsappPhone && (
             <a
@@ -693,6 +732,15 @@ export function TourViewer({
           color={color}
           currentYaw={currentYaw}
           onPick={goToScene}
+        />
+      )}
+
+      {/* Lightbox de la galería de fotos planas */}
+      {galleryOpen && hasGallery && (
+        <GalleryLightbox
+          photos={gallery}
+          color={color}
+          onClose={() => setGalleryOpen(false)}
         />
       )}
 

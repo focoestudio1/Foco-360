@@ -36,6 +36,12 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Notas locales con credenciales (NUNCA commitear)
+token-*.txt
+credenciales*.txt
+*-credentials.txt
+*.secret
+
 # vercel
 .vercel
 

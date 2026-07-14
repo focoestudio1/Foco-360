@@ -154,3 +154,9 @@ export function buildWelcomeKey(slug: string, filename: string): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `projects/${slug}/welcome-${Date.now()}-${safe}`;
 }
+
+// Key para foto de la galería (fotos planas, no 360°).
+export function buildGalleryKey(slug: string, filename: string): string {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `projects/${slug}/gallery-${Date.now()}-${safe}`;
+}
