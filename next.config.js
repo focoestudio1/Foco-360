@@ -12,13 +12,19 @@ const nextConfig = {
   },
   // Headers básicos de seguridad.
   async headers() {
+    // Los TOURS deben poder embeberse en la plataforma FOCO
+    // (galerias.focoestudio.net y demás subdominios de focoestudio.net).
+    // Por eso NO usamos X-Frame-Options (solo permite DENY/SAMEORIGIN, no un
+    // origen cruzado) sino CSP frame-ancestors, que sí permite listar dominios.
+    const frameAncestors =
+      "frame-ancestors 'self' https://*.focoestudio.net https://focoestudio.net";
     return [
       {
         source: '/:path*',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Content-Security-Policy', value: frameAncestors },
         ],
       },
     ];
