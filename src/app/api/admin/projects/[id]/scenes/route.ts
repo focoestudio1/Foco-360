@@ -25,8 +25,19 @@ export async function POST(
 
   const key = String(body.key ?? '');
   const title = String(body.title ?? '').trim() || 'Escena sin título';
+  // Una escena puede ser una FOTO 360 (key de R2) o un VIDEO 360 (URL de Bunny).
+  const kind = body.kind === 'video' ? 'video' : 'photo';
+  const videoUrl = String(body.videoUrl ?? '').trim();
 
-  if (!key) {
+  if (kind === 'video') {
+    // Solo aceptamos https (el video se sirve desde Bunny, no desde R2).
+    if (!/^https:\/\/\S+$/i.test(videoUrl)) {
+      return NextResponse.json(
+        { error: 'videoUrl inválida: pega el link del video 360 (https://…)' },
+        { status: 400 }
+      );
+    }
+  } else if (!key) {
     return NextResponse.json({ error: 'key requerida' }, { status: 400 });
   }
 
@@ -40,8 +51,9 @@ export async function POST(
     return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 });
   }
 
-  // Valida que la key pertenezca al proyecto.
-  if (!key.startsWith(`projects/${project.slug}/`)) {
+  // Valida que la key pertenezca al proyecto (solo aplica a fotos; en video la
+  // key es opcional y solo sirve de póster).
+  if (key && !key.startsWith(`projects/${project.slug}/`)) {
     return NextResponse.json({ error: 'Key no autorizada' }, { status: 403 });
   }
 
@@ -60,7 +72,10 @@ export async function POST(
     .insert({
       project_id: params.id,
       title,
-      image_url: key,
+      kind,
+      // En video, image_url queda null salvo que manden un póster.
+      image_url: key || null,
+      video_url: kind === 'video' ? videoUrl : null,
       order_index: nextIndex,
     })
     .select('*')

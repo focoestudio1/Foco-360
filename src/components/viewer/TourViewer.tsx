@@ -24,10 +24,28 @@ const Pannellum = dynamic(() => import('./PannellumViewer').then((m) => m.Pannel
   ),
 });
 
+// Visor de escenas de VIDEO 360 (Pannellum solo hace fotos). Se carga aparte y
+// solo cuando el tour tiene alguna escena de video → los tours de puras fotos
+// no pagan ni un KB extra.
+const Video360 = dynamic(() => import('./Video360Viewer').then((m) => m.Video360Viewer), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-black text-xs text-text-subtle">
+      Cargando video 360°…
+    </div>
+  ),
+});
+
 export type ViewerScene = {
   id: string;
   title: string;
   url: string;
+  // Tipo de escena: 'photo' = panorama 360 (Pannellum) · 'video' = video 360
+  // (Video360Viewer). Si no viene, se asume foto — así los tours de siempre
+  // siguen funcionando igual.
+  kind?: 'photo' | 'video';
+  // Playlist HLS de Bunny — solo en escenas de video.
+  videoUrl?: string | null;
   description?: string | null;
   // URL firmada de audio narración (no pasa por proxy: no requiere CORS).
   audioUrl?: string | null;
@@ -418,9 +436,17 @@ export function TourViewer({
         </div>
       )}
 
-      {/* Visor 360° (ocupa toda la altura) */}
+      {/* Visor 360° (ocupa toda la altura).
+          Según el tipo de escena se usa un motor u otro:
+          foto → Pannellum (con hotspots) · video → Video360Viewer (esfera). */}
       <div className="relative flex-1">
-        {activeScene && (
+        {activeScene && activeScene.kind === 'video' && activeScene.videoUrl ? (
+          <Video360
+            key={activeScene.id}
+            videoUrl={activeScene.videoUrl}
+            poster={activeScene.url || null}
+          />
+        ) : activeScene ? (
           <Pannellum
             key={activeScene.id}
             imageUrl={activeScene.url}
@@ -439,7 +465,7 @@ export function TourViewer({
               }
             }}
           />
-        )}
+        ) : null}
 
         {/* Hint visual: mano animada de "arrastrar" los primeros 4s.
             Solo aparece en la primera escena del tour para no molestar. */}

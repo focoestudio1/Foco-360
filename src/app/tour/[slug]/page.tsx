@@ -205,7 +205,15 @@ export default async function TourPage({
       id: s.id,
       title: s.title,
       description: s.description,
-      url: `/api/tour/${params.slug}/image?key=${encodeURIComponent(s.image_url)}`,
+      // Escena de foto (Pannellum) o de VIDEO 360 (Video360Viewer).
+      kind: s.kind === 'video' ? ('video' as const) : ('photo' as const),
+      // El video vive en Bunny: se pasa tal cual (no va por el proxy de R2).
+      videoUrl: s.video_url ?? null,
+      // OJO: en una escena de video image_url puede ser NULL (es solo póster
+      // opcional). Sin este guardia se armaría una URL rota con "null".
+      url: s.image_url
+        ? `/api/tour/${params.slug}/image?key=${encodeURIComponent(s.image_url)}`
+        : '',
       audioUrl: s.audio_url
         ? await getSignedReadUrl(s.audio_url).catch(() => null)
         : null,

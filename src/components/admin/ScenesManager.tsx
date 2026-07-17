@@ -58,6 +58,36 @@ export function ScenesManager({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
 
+  // Agrega una escena de VIDEO 360. El video NO se sube aquí: se sube antes a
+  // FOCO Player (que lo manda a Bunny con streaming adaptativo, imprescindible
+  // porque un 360 en 4K pesa muchísimo) y aquí solo se pega su link.
+  async function agregarEscenaVideo() {
+    const url = window.prompt(
+      'Pega el link del VIDEO 360 (el playlist de Bunny, termina en .m3u8).\n\n' +
+        'Lo obtienes en FOCO Player: sube el video, márcalo "🥽 Es un video 360°" y copia su enlace.'
+    );
+    if (!url) return;
+    if (!/^https:\/\/\S+$/i.test(url.trim())) {
+      showToast('error', 'El link debe empezar por https://');
+      return;
+    }
+    const title = window.prompt('Título de la escena (ej: Recorrido del salón)') || 'Video 360°';
+
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/scenes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'video', videoUrl: url.trim(), title }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo crear la escena');
+      setScenes((prev) => [...prev, { ...data.scene, signed_url: null }]);
+      showToast('success', 'Escena de video 360 agregada');
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    }
+  }
+
   async function uploadFiles(files: FileList) {
     setUploading(true);
     const candidates = Array.from(files).filter((f) =>
@@ -227,6 +257,14 @@ export function ScenesManager({
         >
           + Subir escenas
         </Button>
+        <button
+          type="button"
+          onClick={agregarEscenaVideo}
+          className="btn-secondary text-xs"
+          title="Agrega una escena que sea un VIDEO 360 (se sube antes en FOCO Player)"
+        >
+          🎬 + Video 360°
+        </button>
       </div>
 
       {/* Barra de progreso mientras se procesa/sube */}
