@@ -100,7 +100,18 @@ export function Video360Viewer({
           fluid: true,
           aspectRatio: '16:9',
           responsive: true,
-          html5: { vhs: { overrideNative: true }, nativeVideoTracks: false, nativeAudioTracks: false },
+          html5: {
+            vhs: {
+              overrideNative: true,
+              // 360: la esfera amplía un trozo del cuadro, así que NUNCA hay que
+              // bajar la calidad por el tamaño del reproductor (por defecto sí lo
+              // hace y se ve borroso). Forzamos la máxima resolución disponible.
+              limitRenditionByPlayerDimensions: false,
+              useDevicePixelRatio: true,
+            },
+            nativeVideoTracks: false,
+            nativeAudioTracks: false,
+          },
         });
         playerRef.current = player;
 
