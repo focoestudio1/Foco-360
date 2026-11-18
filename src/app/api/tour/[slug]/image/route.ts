@@ -35,29 +35,27 @@ export async function GET(
     return new NextResponse('Forbidden', { status: 403 });
   }
 
-  // Triple ruta de autorización.
-  const admin = await getAdminUser();
-  const cookieAccess =
-    req.cookies.get(`tour_access_${params.slug}`)?.value === '1';
+  // ¿El tour es PÚBLICO (activo y sin contraseña)? Lo necesitamos saber siempre:
+  // decide si la imagen puede quedar en la caché compartida de Vercel.
+  const supabase = createSupabaseAdminClient();
+  const { data: project } = await supabase
+    .from('projects')
+    .select('password_hash, is_active')
+    .eq('slug', params.slug)
+    .single();
+  const esPublico = !!project && !!project.is_active && !project.password_hash;
 
-  let allowed = !!admin || cookieAccess;
-
+  // Triple ruta de autorización: tour público, cookie de acceso o admin.
+  let allowed = esPublico;
   if (!allowed) {
-    // Proyecto público (sin contraseña) → acceso libre.
-    const supabase = createSupabaseAdminClient();
-    const { data: project } = await supabase
-      .from('projects')
-      .select('password_hash, is_active')
-      .eq('slug', params.slug)
-      .single();
-    if (!project) return new NextResponse('Not Found', { status: 404 });
-    if (!project.is_active) {
-      return new NextResponse('Not Found', { status: 404 });
-    }
-    allowed = !project.password_hash;
+    const cookieAccess =
+      req.cookies.get(`tour_access_${params.slug}`)?.value === '1';
+    allowed = cookieAccess && !!project && !!project.is_active;
+    if (!allowed) allowed = !!(await getAdminUser()); // el admin ve también inactivos
   }
 
   if (!allowed) {
+    if (!project || !project.is_active) return new NextResponse('Not Found', { status: 404 });
     return new NextResponse('Forbidden', { status: 403 });
   }
 
@@ -68,13 +66,21 @@ export async function GET(
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  // Stream del body al cliente. Cache 1h (las panoramicas no cambian).
-  return new NextResponse(r2.body, {
-    status: 200,
-    headers: {
-      'Content-Type': r2.headers.get('Content-Type') || 'image/jpeg',
-      'Content-Length': r2.headers.get('Content-Length') ?? '',
-      'Cache-Control': 'private, max-age=3600',
-    },
-  });
+  // Caché. Cada archivo subido tiene un nombre ÚNICO (lleva la fecha/hora), así
+  // que su contenido nunca cambia:
+  //  - Tour PÚBLICO → caché compartida de Vercel 30 días (s-maxage): la 2ª visita
+  //    en adelante la recibe desde el servidor de Vercel más cercano, sin pasar
+  //    por esta función, por R2 ni por Supabase → carga mucho más rápido.
+  //  - Tour con CONTRASEÑA → solo el navegador de quien tiene acceso (private).
+  const cacheControl = esPublico
+    ? 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400'
+    : 'private, max-age=86400';
+  const headers: Record<string, string> = {
+    'Content-Type': r2.headers.get('Content-Type') || 'image/jpeg',
+    'Cache-Control': cacheControl,
+  };
+  const len = r2.headers.get('Content-Length');
+  if (len) headers['Content-Length'] = len;
+
+  return new NextResponse(r2.body, { status: 200, headers });
 }
