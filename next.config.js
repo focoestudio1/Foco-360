@@ -16,8 +16,10 @@ const nextConfig = {
     // (galerias.focoestudio.net y demás subdominios de focoestudio.net).
     // Por eso NO usamos X-Frame-Options (solo permite DENY/SAMEORIGIN, no un
     // origen cruzado) sino CSP frame-ancestors, que sí permite listar dominios.
+    // + el acceso del ESTUDIO por la red local (admin "FOCO Admin (Estudio)" en
+    // http://foco-nas.local:8080): sin esto el tour salía "rechazó la conexión".
     const frameAncestors =
-      "frame-ancestors 'self' https://*.focoestudio.net https://focoestudio.net";
+      "frame-ancestors 'self' https://*.focoestudio.net https://focoestudio.net http://foco-nas.local:*";
     return [
       {
         source: '/:path*',
